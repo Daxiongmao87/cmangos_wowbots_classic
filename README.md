@@ -1,0 +1,1 @@
+# cmangos_wowbots_classic
