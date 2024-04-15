@@ -40,6 +40,7 @@ RUN apt-get update && apt-get install -y \
     php-opcache \
     python3-srp \
     curl \
+    nano \
     gridsite-clients \
     && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-12 100 \
     && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-12 100 \

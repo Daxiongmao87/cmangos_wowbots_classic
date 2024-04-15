@@ -159,13 +159,15 @@ if [ -f $HOME_PATH/server/run/etc/aiplayerbot.conf ]; then
     echo "aiplayerbot.conf already exists. Skipping..."
 else
     echo "Copying aiplayerbot.conf..."
-    cp $HOME_PATH/server/mangos/build/src/modules/PlayerBots/aiplayerbot.conf.dist $HOME_PATH/server/run/etc/aiplayerbot.conf
+    cp $CORE_PATH/build/src/modules/PlayerBots/aiplayerbot.conf.dist $HOME_PATH/server/run/etc/aiplayerbot.conf
+    touch $HOME_PATH/server/run/etc/UNCONFIGURED
 fi
 if [ -f $HOME_PATH/server/run/etc/ahbot.conf ]; then
     echo "ahbot.conf already exists. Skipping..."
 else
     echo "Copying ahbot.conf..."
-    cp $HOME_PATH/server/mangos/build/src/modules/PlayerBots/ahbot.conf.dist $HOME_PATH/server/run/etc/ahbot.conf
+    cp $CORE_PATH/build/src/modules/PlayerBots/ahbot.conf.dist $HOME_PATH/server/run/etc/ahbot.conf
+    touch $HOME_PATH/server/run/etc/UNCONFIGURED
 fi
 
 # Assuming client files are mounted at $HOME_PATH/client
@@ -188,9 +190,6 @@ if [ "$(ls -A $EXTRACTION_OUTPUT)" ]; then
     echo "Client data already extracted. Skipping..."
 else
     echo "Client data not extracted. Extracting..."
-    # cp $HOME_PATH/server/run/bin/tools/ExtractResources.sh $HOME_PATH/server/run/bin/tools/MoveMapGen.sh $HOME_PATH/client/
-    # ln -s $HOME_PATH/client/Data $HOME_PATH/server/run/bin/tools/Data
-    # $HOME_PATH/client/ExtractResources.sh a $CLIENT_PATH $EXTRACTION_OUTPUT
     cd $HOME_PATH/server/run/bin/tools
     ./ExtractResources.sh a $CLIENT_PATH $EXTRACTION_OUTPUT
     echo "Client data extracted successfully."
@@ -221,6 +220,7 @@ else
     echo "Copying mangosd.conf..."
     cp $CORE_PATH/src/mangosd/mangosd.conf.dist.in $HOME_PATH/server/run/etc/mangosd.conf
     echo "mangosd.conf copied successfully."
+    touch $HOME_PATH/server/run/etc/UNCONFIGURED
 fi
 
 if [ -f $HOME_PATH/server/run/etc/realmd.conf ]; then
@@ -229,6 +229,30 @@ else
     echo "Copying realmd.conf..."
     cp $CORE_PATH/src/realmd/realmd.conf.dist.in $HOME_PATH/server/run/etc/realmd.conf
     echo "realmd.conf copied successfully."
+    touch $HOME_PATH/server/run/etc/UNCONFIGURED
+fi
+
+if [ -f $HOME_PATH/server/run/etc/UNCONFIGURED ]; then
+    echo "--------------------------------"
+    echo "STARTUP PROCESS PAUSED"
+    echo "New configuration files have been generated in $HOME_PATH/server/run/etc"
+    echo "Diretory listing:"
+    echo "-----"
+    for file in $(ls $HOME_PATH/server/run/etc); do
+        echo "$file"
+    done
+    echo "-----"
+    echo "Update these configuration files as needed and delete the UNCONFIGURED file when finished."
+    echo "Useful commands:"
+    echo "-----"
+    echo "Edit a file: docker compose exec -it <container name> nano $HOME_PATH/server/run/etc/<configuration file>"
+    echo "Delete UNCONFIGURED file: docker compose exec -it <container name> rm $HOME_PATH/server/run/etc/UNCONFIGURED"
+    echo "-----"
+    echo "Waiting..."
+    while [ -f $HOME_PATH/server/run/etc/UNCONFIGURED ]; do
+	sleep 1s
+    done
+    echo "--------------------------------"
 fi
 
 # Start the CMaNGOS server
@@ -343,7 +367,7 @@ if [ "$website_db_exists" != "website" ]; then
     echo "Website setup complete."
 fi
 
-echo "-------------------------------_"
+echo "--------------------------------"
 echo "MariaDB is now running."
 echo "Mangosd is now running."
 echo "Realmd is now running."

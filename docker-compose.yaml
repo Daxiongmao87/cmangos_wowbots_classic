@@ -12,7 +12,7 @@ services:
     ports:
       - "8085:8085" # Game server port
       - "3724:3724" # Realm daemon port
-      - "8080:8080" # Web server port
+      - "8081:8080" # Web server port
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_DATABASE=classicmangos
