@@ -38,6 +38,9 @@ RUN apt-get update && apt-get install -y \
     php-xml \
     php-json \
     php-opcache \
+    python3-srp \
+    curl \
+    gridsite-clients \
     && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-12 100 \
     && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-12 100 \
     && apt-get clean \
@@ -64,7 +67,7 @@ WORKDIR /home/mangos/server
 RUN git clone https://github.com/cmangos/mangos-classic.git mangos && \
     git clone https://github.com/cmangos/classic-db.git database && \
     mkdir -p mangos/src/modules && \
-    git clone https://github.com/cmangos/playerbots.git mangos/src/modules/Bots && \
+##    git clone https://github.com/cmangos/playerbots.git mangos/src/modules/Bots && \
     git clone https://github.com/daxiongmao87/cmangos-website.git website
 
 # Make/compile the CMaNGOS Classic core

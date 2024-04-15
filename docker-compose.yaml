@@ -18,6 +18,8 @@ services:
       - MYSQL_DATABASE=classicmangos
       - MYSQL_USER=mangos
       - MYSQL_PASSWORD=mangos
+      - ADMIN_USER=admin
+      - ADMIN_PASSWORD=admin
       - SERVER_NAME="CMaNGOS WoWBots Classic" #Realm Name and Website Name
       - SERVER_ADDRESS=127.0.0.1 #Change this to your server's/realmlist's IP
       - WEBSITE_PUBLIC_URL="http://127.0.0.1:8080/" #Change this to where your website will be reachable

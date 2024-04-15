@@ -4,8 +4,8 @@ HOME_PATH=/home/mangos
 CORE_PATH=$HOME_PATH/server/mangos
 
 # Set ADMIN_USERNAME and ADMIN_PASSWORD default values if not provided
-ADMIN_USERNAME=${ADMIN_USERNAME:-ADMINISTRATOR}
-ADMIN_PASSWORD=${ADMIN_PASSWORD:-ADMINISTRATOR}
+ADMIN_USER=${ADMIN_USER:-admin}
+ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
 # Create /run/mysqld directory with correct permissions
 sudo mkdir -p /run/mysqld
 sudo chown mysql:mysql /run/mysqld
@@ -68,6 +68,9 @@ if [ "$DB_EXISTS" = "classicmangos" ] && [ "$TABLE_EXISTS" = "ai_playerbot_encha
     echo "Classic-DB with playerbots already set up. Skipping..."
 else
     echo "Setting up Classic-DB with playerbots enabled..."
+    echo "Removing creation of default accounts..."
+    sed -i '/-- Dumping data for table `account`/,/UNLOCK TABLES;/d' $CORE_PATH/sql/base/realmd.sql
+    echo "Removed default account creation sql statements."
     cd $HOME_PATH/server/database
     chmod +x InstallFullDB.sh
     # Initialize InstallFullDB.config by running InstallFullDB.sh silently
@@ -102,7 +105,7 @@ echo "Realmlist table updated to $updated_realm."
 
 
 # Apply SQL updates to the 'characters' database
-BOTS_SQL_DIR="$CORE_PATH/src/modules/Bots/sql"
+BOTS_SQL_DIR="$CORE_PATH/src/modules/PlayerBots/sql"
 echo "Applying playerbots SQL updates to the 'characters' database..."
 for sql_file in $BOTS_SQL_DIR/characters/*.sql; do
     # Extract table name from SQL file
@@ -156,13 +159,13 @@ if [ -f $HOME_PATH/server/run/etc/aiplayerbot.conf ]; then
     echo "aiplayerbot.conf already exists. Skipping..."
 else
     echo "Copying aiplayerbot.conf..."
-    cp $HOME_PATH/server/run/etc/aiplayerbot.conf.dist $HOME_PATH/server/run/etc/aiplayerbot.conf
+    cp $HOME_PATH/server/mangos/build/src/modules/PlayerBots/aiplayerbot.conf.dist $HOME_PATH/server/run/etc/aiplayerbot.conf
 fi
 if [ -f $HOME_PATH/server/run/etc/ahbot.conf ]; then
     echo "ahbot.conf already exists. Skipping..."
 else
     echo "Copying ahbot.conf..."
-    cp $HOME_PATH/server/run/etc/ahbot.conf.dist $HOME_PATH/server/run/etc/ahbot.conf
+    cp $HOME_PATH/server/mangos/build/src/modules/PlayerBots/ahbot.conf.dist $HOME_PATH/server/run/etc/ahbot.conf
 fi
 
 # Assuming client files are mounted at $HOME_PATH/client
@@ -235,27 +238,6 @@ echo "Starting CMaNGOS server..."
 screen -dmS mangosd ./mangosd -c $HOME_PATH/server/run/etc/mangosd.conf
 echo "CMaNGOS server started in detached screen."
 
-# Delete all default accounts and create new based on ADMIN_USERNAME and ADMIN_PASSWORD
-if [[ $init_accounts = "true" ]]; then
-    # Assuming mysql is the database client you are using
-
-    # Generate and set random "passwords" for GAMEMASTER, MODERATOR, PLAYER
-    for user in GAMEMASTER MODERATOR PLAYER; do
-        # Generate a random password
-        random_password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
-        # Example hash calculation using SHA1 - You'll need to replace this with your actual method
-        # The following is just a placeholder to demonstrate the approach:
-        hashed_password=$(echo -n "$random_password" | sha1sum | awk '{print $1}')
-        salt=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
-        # Update the database - Assuming 'v' and 's' can directly take these hashed values
-        mysql -umangos -pmangos -e "UPDATE classicrealmd.account SET v='$hashed_password', s='$salt' WHERE username='$user';"
-    done
-    echo "GAMEMASTER, MODERATOR, and PLAYER account passwords scrambled successfully."
-    echo "###############################################################################################"
-    echo "IMPORTANT! YOU MUST LOG IN AS ADMINISTRATOR/ADMINISTRATOR AND CHANGE ITS PASSWORD IMMEDIATELY!"
-    echo "###############################################################################################"
-fi
-
 # Start the realmd service
 echo "Starting realmd..."
 ./realmd -c $HOME_PATH/server/run/etc/realmd.conf &
@@ -271,26 +253,6 @@ sed -i "s/'mangosd_classic'/'classicmangos'/" $CONFIG_PHP
 sed -i "s/'characters_classic'/'classiccharacters'/" $CONFIG_PHP
 sed -i "s/define('WEBSITE_NAME', '.*');/define('WEBSITE_NAME', '$SERVER_NAME');/" $CONFIG_PHP
 sed -i "s/define('WEBSITE_TIMEZONE', '.*');/define('WEBSITE_TIMEZONE', '${TIMEZONE//\//\\/}');/" $CONFIG_PHP
-
-#If the website sql hasn't already been imported, make changes and import it. Check by seeing if the database exists
-website_db_exists=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SHOW DATABASES LIKE 'website';")
-#If the website database doesn't exist, import the website.sql
-if [ "$website_db_exists" != "website" ]; then
-    echo "Importing website.sql..."
-    sed -i "s/<SERVER_NAME>/$SERVER_NAME/" $HOME_PATH/server/website/website.sql
-    sed -i "s/<SERVER_ADDRESS>/$SERVER_ADDRESS/" $HOME_PATH/server/website/website.sql
-    sed -i "s/<WEBSITE_PUBLIC_URL>/$WEBSITE_PUBLIC_URL/" $HOME_PATH/server/website/website.sql
-    #Use current unix timestamp as the timestamp
-    sed -i "s/<TIMESTAMP>/$(date +%s)/" $HOME_PATH/server/website/website.sql
-    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" < $HOME_PATH/server/website/website.sql
-    #Import the website.sql using mysql
-    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE website;"
-    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON website.* TO 'mangos'@'localhost';"
-    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
-    mysql -umangos -pmangos website < $HOME_PATH/server/website/website.sql
-    echo "website.sql imported successfully."
-fi
-#Update Website Announcement to replace placeholders
 
 
 # Configure Nginx and PHP
@@ -345,5 +307,46 @@ sudo nginx -g 'daemon off;' &
 sudo php-fpm8.1 -F &
 echo "Nginx started."
 
+
+website_db_exists=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SHOW DATABASES LIKE 'website';")
+if [ "$website_db_exists" != "website" ]; then
+    echo "website database does not exist. Creating website database..."
+    echo "Importing website.sql..."
+    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE website;"
+    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON website.* TO 'mangos'@'localhost';"
+    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
+    mysql -umangos -pmangos website < $HOME_PATH/server/website/website.sql
+    echo "website.sql imported successfully."
+    echo "Checking if admin account exists..."
+    ADMIN_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SELECT EXISTS(SELECT 1 FROM classicrealmd.account WHERE username = '$ADMIN_USER');")
+    if [ "$ADMIN_EXISTS" != 1 ]; then
+        curl localhost:8080/account/create -s -o /dev/null -X POST --data-raw "username=$(urlencode "$ADMIN_USER")&email=noreply%40noreply.com&password=$(urlencode "$ADMIN_PASSWORD")&password_confirm=$(urlencode "$ADMIN_PASSWORD")" 
+        echo "Admin account created successfully."
+    fi
+    admin_id=$(mysql -umangos -pmangos -se "SELECT id FROM website.account WHERE nickname = '$ADMIN_USER';")
+    echo "Inserting news entry..."
+    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "\
+        INSERT INTO website.news VALUES ('1', '$(date +%s)', '$admin_id', '${SERVER_NAME} is Now Live! Rediscover Classic Azeroth', 'Welcome back to the classic era of World of Warcraft with [b]${SERVER_NAME}[/b]! Immerse yourself in the original, unaltered Azeroth as it was meant to be experienced.\n\
+        \n\
+        [b]Key Features:[/b]\n\
+        - [b]Authentic Blizzlike Gameplay:[/b] Every aspect of the server replicates the classic 1.12.1 experience.\n\
+        - [b]Enhanced by Bots:[/b] To ensure a thriving environment, our server includes bots that simulate a populated world, making it easy to find allies for your adventures.\n\
+        \n\
+        [b]Get Started:[/b]\n\
+        1. [b]Download the 1.12.1 Client:[/b] If you don\'t already have it, download the classic version 1.12.1 client.\n\
+        2. [b]Edit Your Realmlist.wtf File:[/b] Navigate to your WoW directory, open the \'realmlist.wtf\' file with a text editor, and replace its contents with: `set realmlist ${SERVER_ADDRESS}`.\n\
+        3. [b]Create an Account:[/b] Visit ${WEBSITE_PUBLIC_URL} to register.\n\
+        4. [b]Log In and Play:[/b] Enter the world and start your classic adventure!\n\
+        \n\
+        Sign up at [b]${SERVER_NAME}/account/create[/b] and relive the legendary tales of Azeroth as they were originally told!', '1');"
+    echo "News entry inserted successfully."
+    echo "Website setup complete."
+fi
+
+echo "-------------------------------_"
+echo "MariaDB is now running."
+echo "Mangosd is now running."
+echo "Realmd is now running."
+echo "Website is now running."
 # Prevent the container from exiting
 tail -f /dev/null
