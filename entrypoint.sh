@@ -345,6 +345,7 @@ if [ "$website_db_exists" != "website" ]; then
     ADMIN_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SELECT EXISTS(SELECT 1 FROM classicrealmd.account WHERE username = '$ADMIN_USER');")
     if [ "$ADMIN_EXISTS" != 1 ]; then
         curl localhost:8080/account/create -s -o /dev/null -X POST --data-raw "username=$(urlencode "$ADMIN_USER")&email=noreply%40noreply.com&password=$(urlencode "$ADMIN_PASSWORD")&password_confirm=$(urlencode "$ADMIN_PASSWORD")" 
+	mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "update classicrealmd.account set gmlevel = 4 where username = '$ADMIN_USER';"
         echo "Admin account created successfully."
     fi
     admin_id=$(mysql -umangos -pmangos -se "SELECT id FROM website.account WHERE nickname = '$ADMIN_USER';")
