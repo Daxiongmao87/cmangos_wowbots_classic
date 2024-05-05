@@ -159,15 +159,13 @@ if [ -f $HOME_PATH/server/run/etc/aiplayerbot.conf ]; then
     echo "aiplayerbot.conf already exists. Skipping..."
 else
     echo "Copying aiplayerbot.conf..."
-    cp $CORE_PATH/build/src/modules/PlayerBots/aiplayerbot.conf.dist $HOME_PATH/server/run/etc/aiplayerbot.conf
-    touch $HOME_PATH/server/run/etc/UNCONFIGURED
+    cp $HOME_PATH/server/mangos/build/src/modules/PlayerBots/aiplayerbot.conf.dist $HOME_PATH/server/run/etc/aiplayerbot.conf
 fi
 if [ -f $HOME_PATH/server/run/etc/ahbot.conf ]; then
     echo "ahbot.conf already exists. Skipping..."
 else
     echo "Copying ahbot.conf..."
-    cp $CORE_PATH/build/src/modules/PlayerBots/ahbot.conf.dist $HOME_PATH/server/run/etc/ahbot.conf
-    touch $HOME_PATH/server/run/etc/UNCONFIGURED
+    cp $HOME_PATH/server/mangos/build/src/modules/PlayerBots/ahbot.conf.dist $HOME_PATH/server/run/etc/ahbot.conf
 fi
 
 # Assuming client files are mounted at $HOME_PATH/client
@@ -186,7 +184,9 @@ echo "WoW client files found in $CLIENT_PATH."
 
 # Run the extraction scripts (Assuming they're compiled and available in the run/bin/tools directory)
 # Check if data is already extracted
-if [ "$(ls -A $EXTRACTION_OUTPUT)" ]; then
+if [ "$(ls -A $EXTRACTION_OUTPUT/vmaps)" ]; then
+    echo "ls -A $EXTRACTION_OUTPUT/vmaps"
+    ls -A $EXTRACTION_OUTPUT/vmaps
     echo "Client data already extracted. Skipping..."
 else
     echo "Client data not extracted. Extracting..."
@@ -196,16 +196,17 @@ else
 fi
 
 # Define the directories to check and move
-DIRS=("maps" "dbc" "vmaps" "mmaps" "CreatureModels" "Cameras")
+#DIRS=("maps" "dbc" "vmaps" "mmaps" "CreatureModels" "Cameras")
+DIRS=("maps" "dbc" "vmaps" "mmaps" "Buildings" "Cameras")
 
 # Ensure the extracted data is moved to the correct directories
 for DIR in "${DIRS[@]}"; do
-    if [ -d "$HOME_PATH/server/run/bin/$DIR" ]; then
+        if [ "$(ls -A $HOME_PATH/server/run/bin/$DIR)" ]; then
         echo "$DIR already copied to the correct directory. Skipping..."
     else
         if [ -d "$EXTRACTION_OUTPUT/$DIR" ]; then
             echo "Copying $DIR to the correct directory..."
-            cp -r "$EXTRACTION_OUTPUT/$DIR" "$HOME_PATH/server/run/bin/$DIR"
+            cp -r "$EXTRACTION_OUTPUT/$DIR/" "$HOME_PATH/server/run/bin/"
             echo "$DIR moved successfully."
         else
             echo "$DIR does not exist in the extraction output. Skipping..."
@@ -220,7 +221,6 @@ else
     echo "Copying mangosd.conf..."
     cp $CORE_PATH/src/mangosd/mangosd.conf.dist.in $HOME_PATH/server/run/etc/mangosd.conf
     echo "mangosd.conf copied successfully."
-    touch $HOME_PATH/server/run/etc/UNCONFIGURED
 fi
 
 if [ -f $HOME_PATH/server/run/etc/realmd.conf ]; then
@@ -229,30 +229,6 @@ else
     echo "Copying realmd.conf..."
     cp $CORE_PATH/src/realmd/realmd.conf.dist.in $HOME_PATH/server/run/etc/realmd.conf
     echo "realmd.conf copied successfully."
-    touch $HOME_PATH/server/run/etc/UNCONFIGURED
-fi
-
-if [ -f $HOME_PATH/server/run/etc/UNCONFIGURED ]; then
-    echo "--------------------------------"
-    echo "STARTUP PROCESS PAUSED"
-    echo "New configuration files have been generated in $HOME_PATH/server/run/etc"
-    echo "Diretory listing:"
-    echo "-----"
-    for file in $(ls $HOME_PATH/server/run/etc); do
-        echo "$file"
-    done
-    echo "-----"
-    echo "Update these configuration files as needed and delete the UNCONFIGURED file when finished."
-    echo "Useful commands:"
-    echo "-----"
-    echo "Edit a file: docker compose exec -it <container name> nano $HOME_PATH/server/run/etc/<configuration file>"
-    echo "Delete UNCONFIGURED file: docker compose exec -it <container name> rm $HOME_PATH/server/run/etc/UNCONFIGURED"
-    echo "-----"
-    echo "Waiting..."
-    while [ -f $HOME_PATH/server/run/etc/UNCONFIGURED ]; do
-	sleep 1s
-    done
-    echo "--------------------------------"
 fi
 
 # Start the CMaNGOS server
@@ -308,7 +284,7 @@ echo "Enabling short_open_tag in php.ini..."
 sudo sed -i 's/^short_open_tag = Off/short_open_tag = On/' /etc/php/8.1/fpm/php.ini
 
 sudo rm -rf /var/www/html/*
-sudo cp -r $HOME_PATH/server/website/* /var/www/html 
+sudo cp -r $HOME_PATH/server/website/* /var/www/html
 sudo chown -R www-data:www-data /var/www/html
 sudo chmod -R 755 /var/www/html
 
@@ -344,8 +320,7 @@ if [ "$website_db_exists" != "website" ]; then
     echo "Checking if admin account exists..."
     ADMIN_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SELECT EXISTS(SELECT 1 FROM classicrealmd.account WHERE username = '$ADMIN_USER');")
     if [ "$ADMIN_EXISTS" != 1 ]; then
-        curl localhost:8080/account/create -s -o /dev/null -X POST --data-raw "username=$(urlencode "$ADMIN_USER")&email=noreply%40noreply.com&password=$(urlencode "$ADMIN_PASSWORD")&password_confirm=$(urlencode "$ADMIN_PASSWORD")" 
-	mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "update classicrealmd.account set gmlevel = 4 where username = '$ADMIN_USER';"
+        curl localhost:8080/account/create -s -o /dev/null -X POST --data-raw "username=$(urlencode "$ADMIN_USER")&email=noreply%40noreply.com&password=$(urlencode "$ADMIN_PASSWORD")&password_confirm=$(urlencode "$ADMIN_PASSWORD")"
         echo "Admin account created successfully."
     fi
     admin_id=$(mysql -umangos -pmangos -se "SELECT id FROM website.account WHERE nickname = '$ADMIN_USER';")
@@ -368,12 +343,11 @@ if [ "$website_db_exists" != "website" ]; then
     echo "Website setup complete."
 fi
 
-echo "--------------------------------"
+echo "-------------------------------_"
 echo "MariaDB is now running."
 echo "Mangosd is now running."
 echo "Realmd is now running."
 echo "Website is now running."
-# Prevent the container from exiting
 while true; do
     if ! pgrep -x "mysqld" > /dev/null; then
         echo "MariaDB service has stopped. Exiting..."
