@@ -185,8 +185,6 @@ echo "WoW client files found in $CLIENT_PATH."
 # Run the extraction scripts (Assuming they're compiled and available in the run/bin/tools directory)
 # Check if data is already extracted
 if [ "$(ls -A $EXTRACTION_OUTPUT/vmaps)" ]; then
-    echo "ls -A $EXTRACTION_OUTPUT/vmaps"
-    ls -A $EXTRACTION_OUTPUT/vmaps
     echo "Client data already extracted. Skipping..."
 else
     echo "Client data not extracted. Extracting..."
