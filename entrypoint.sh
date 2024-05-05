@@ -374,4 +374,22 @@ echo "Mangosd is now running."
 echo "Realmd is now running."
 echo "Website is now running."
 # Prevent the container from exiting
-tail -f /dev/null
+while true; do
+    if ! pgrep -x "mysqld" > /dev/null; then
+        echo "MariaDB service has stopped. Exiting..."
+        exit 1
+    fi
+    if ! pgrep -x "mangosd" > /dev/null; then
+        echo "Mangosd service has stopped. Exiting..."
+        exit 1
+    fi
+    if ! pgrep -x "realmd" > /dev/null; then
+        echo "Realmd service has stopped. Exiting..."
+        exit 1
+    fi
+    if ! curl -s "http://localhost" > /dev/null; then
+        echo "Website service has stopped. Exiting..."
+        exit 1
+    fi
+    sleep 5
+done
