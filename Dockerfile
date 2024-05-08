@@ -65,8 +65,10 @@ WORKDIR /home/mangos/server
 
 
 # Clone the CMaNGOS Classic core, database, and website repositories
-RUN git clone https://github.com/cmangos/mangos-classic.git mangos && \
-    git clone https://github.com/cmangos/classic-db.git database && \
+RUN git clone --single-branch  https://github.com/cmangos/mangos-classic.git mangos && \
+    git -C mangos checkout 8a569a946ce367efa29b0cef098f7af6c45d27d6 && \
+    git clone --single-branch https://github.com/cmangos/classic-db.git database && \
+    git -C database checkout 51c1a1075c9cca63b1d0c0e078407948de227258 && \
     mkdir -p mangos/src/modules && \
 ##    git clone https://github.com/cmangos/playerbots.git mangos/src/modules/Bots && \
     git clone https://github.com/daxiongmao87/cmangos-website.git website
