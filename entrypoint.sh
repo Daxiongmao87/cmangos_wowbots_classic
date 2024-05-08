@@ -1,7 +1,6 @@
 #!/bin/bash
 MYSQL_PATH=$(whereis mysql | cut -d ' ' -f2)
-HOME_PATH=/home/mangos
-CORE_PATH=$HOME_PATH/server/mangos
+CORE_PATH=$HOME/server/mangos
 
 # Set ADMIN_USERNAME and ADMIN_PASSWORD default values if not provided
 ADMIN_USER=${ADMIN_USER:-admin}
@@ -10,7 +9,7 @@ ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
 sudo mkdir -p /run/mysqld
 sudo chown mysql:mysql /run/mysqld
 sudo chmod 777 /run/mysqld
-sudo chown -R mangos:mangos $HOME_PATH/server
+sudo chown -R mangos:mangos $HOME/server
 if [ ! -d "/var/lib/mysql/mysql" ]; then
     echo "Initializing MariaDB Data Directory"
     sudo mysql_install_db --user=mysql --ldata=/var/lib/mysql
@@ -71,7 +70,7 @@ else
     echo "Removing creation of default accounts..."
     sed -i '/-- Dumping data for table `account`/,/UNLOCK TABLES;/d' $CORE_PATH/sql/base/realmd.sql
     echo "Removed default account creation sql statements."
-    cd $HOME_PATH/server/database
+    cd $HOME/server/database
     chmod +x InstallFullDB.sh
     # Initialize InstallFullDB.config by running InstallFullDB.sh silently
     echo "Generating InstallFullDB.config..."
@@ -154,24 +153,24 @@ done
 echo "World database for the Classic expansion updated successfully."
 
 # Copy aiplayerbot.conf
-mkdir -p $HOME_PATH/server/run/etc
-if [ -f $HOME_PATH/server/run/etc/aiplayerbot.conf ]; then
+mkdir -p $HOME/server/run/etc
+if [ -f $HOME/server/run/etc/aiplayerbot.conf ]; then
     echo "aiplayerbot.conf already exists. Skipping..."
 else
     echo "Copying aiplayerbot.conf..."
-    cp $HOME_PATH/server/mangos/build/src/modules/PlayerBots/aiplayerbot.conf.dist $HOME_PATH/server/run/etc/aiplayerbot.conf
+    cp $HOME/server/mangos/build/src/modules/PlayerBots/aiplayerbot.conf.dist $HOME/server/run/etc/aiplayerbot.conf
 fi
-if [ -f $HOME_PATH/server/run/etc/ahbot.conf ]; then
+if [ -f $HOME/server/run/etc/ahbot.conf ]; then
     echo "ahbot.conf already exists. Skipping..."
 else
     echo "Copying ahbot.conf..."
-    cp $HOME_PATH/server/mangos/build/src/modules/PlayerBots/ahbot.conf.dist $HOME_PATH/server/run/etc/ahbot.conf
+    cp $HOME/server/mangos/build/src/modules/PlayerBots/ahbot.conf.dist $HOME/server/run/etc/ahbot.conf
 fi
 
-# Assuming client files are mounted at $HOME_PATH/client
+# Assuming client files are mounted at $HOME/client
 echo "Extracting client data..."
-CLIENT_PATH="$HOME_PATH/client"
-EXTRACTION_OUTPUT="$HOME_PATH/server/client-data"
+CLIENT_PATH="$HOME/client"
+EXTRACTION_OUTPUT="$HOME/server/client-data"
 mkdir -p $EXTRACTION_OUTPUT
 
 # Check if client data exists
@@ -188,7 +187,7 @@ if [ "$(ls -A $EXTRACTION_OUTPUT/vmaps)" ]; then
     echo "Client data already extracted. Skipping..."
 else
     echo "Client data not extracted. Extracting..."
-    cd $HOME_PATH/server/run/bin/tools
+    cd $HOME/server/run/bin/tools
     ./ExtractResources.sh a $CLIENT_PATH $EXTRACTION_OUTPUT
     echo "Client data extracted successfully."
 fi
@@ -199,12 +198,12 @@ DIRS=("maps" "dbc" "vmaps" "mmaps" "Buildings" "Cameras")
 
 # Ensure the extracted data is moved to the correct directories
 for DIR in "${DIRS[@]}"; do
-        if [ "$(ls -A $HOME_PATH/server/run/bin/$DIR)" ]; then
+        if [ "$(ls -A $HOME/server/run/bin/$DIR)" ]; then
         echo "$DIR already copied to the correct directory. Skipping..."
     else
         if [ -d "$EXTRACTION_OUTPUT/$DIR" ]; then
             echo "Copying $DIR to the correct directory..."
-            cp -r "$EXTRACTION_OUTPUT/$DIR/" "$HOME_PATH/server/run/bin/"
+            cp -r "$EXTRACTION_OUTPUT/$DIR/" "$HOME/server/run/bin/"
             echo "$DIR moved successfully."
         else
             echo "$DIR does not exist in the extraction output. Skipping..."
@@ -213,36 +212,36 @@ for DIR in "${DIRS[@]}"; do
 done
 
 # Copy mangosd.conf.dist and realmd.conf.dist to the etc directory
-if [ -f $HOME_PATH/server/run/etc/mangosd.conf ]; then
+if [ -f $HOME/server/run/etc/mangosd.conf ]; then
     echo "mangosd.conf already exists. Skipping..."
 else
     echo "Copying mangosd.conf..."
-    cp $CORE_PATH/src/mangosd/mangosd.conf.dist.in $HOME_PATH/server/run/etc/mangosd.conf
+    cp $CORE_PATH/src/mangosd/mangosd.conf.dist.in $HOME/server/run/etc/mangosd.conf
     echo "mangosd.conf copied successfully."
 fi
 
-if [ -f $HOME_PATH/server/run/etc/realmd.conf ]; then
+if [ -f $HOME/server/run/etc/realmd.conf ]; then
     echo "realmd.conf already exists. Skipping..."
 else
     echo "Copying realmd.conf..."
-    cp $CORE_PATH/src/realmd/realmd.conf.dist.in $HOME_PATH/server/run/etc/realmd.conf
+    cp $CORE_PATH/src/realmd/realmd.conf.dist.in $HOME/server/run/etc/realmd.conf
     echo "realmd.conf copied successfully."
 fi
 
 # Start the CMaNGOS server
-cd $HOME_PATH/server/run/bin
+cd $HOME/server/run/bin
 
 echo "Starting CMaNGOS server..."
-screen -dmS mangosd ./mangosd -c $HOME_PATH/server/run/etc/mangosd.conf
+screen -dmS mangosd ./mangosd -c $HOME/server/run/etc/mangosd.conf
 echo "CMaNGOS server started in detached screen."
 
 # Start the realmd service
 echo "Starting realmd..."
-./realmd -c $HOME_PATH/server/run/etc/realmd.conf &
+./realmd -c $HOME/server/run/etc/realmd.conf &
 echo "Realmd started successfully."
 
 #Update website's config.php with the mysql information
-CONFIG_PHP="$HOME_PATH/server/website/application/config.php"
+CONFIG_PHP="$HOME/server/website/application/config.php"
 sed -i "s/define('DB_HOST', '.*');/define('DB_HOST', '127.0.0.1');/" $CONFIG_PHP
 sed -i "s/define('DB_USERNAME', '.*');/define('DB_USERNAME', 'root');/" $CONFIG_PHP
 sed -i "s/define('DB_PASSWORD', '.*');/define('DB_PASSWORD', 'root');/" $CONFIG_PHP
@@ -282,7 +281,7 @@ echo "Enabling short_open_tag in php.ini..."
 sudo sed -i 's/^short_open_tag = Off/short_open_tag = On/' /etc/php/8.1/fpm/php.ini
 
 sudo rm -rf /var/www/html/*
-sudo cp -r $HOME_PATH/server/website/* /var/www/html
+sudo cp -r $HOME/server/website/* /var/www/html
 sudo chown -R www-data:www-data /var/www/html
 sudo chmod -R 755 /var/www/html
 
@@ -313,7 +312,7 @@ if [ "$website_db_exists" != "website" ]; then
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE website;"
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON website.* TO 'mangos'@'localhost';"
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
-    mysql -umangos -pmangos website < $HOME_PATH/server/website/website.sql
+    mysql -umangos -pmangos website < $HOME/server/website/website.sql
     echo "website.sql imported successfully."
     echo "Checking if admin account exists..."
     ADMIN_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SELECT EXISTS(SELECT 1 FROM classicrealmd.account WHERE username = '$ADMIN_USER');")
@@ -347,7 +346,7 @@ echo "Mangosd is now running."
 echo "Realmd is now running."
 echo "Website is now running."
 while true; do
-    if ! pgrep -x "mysqld" > /dev/null; then
+    if ! pgrep -x "mysqld_safe" > /dev/null; then
         echo "MariaDB service has stopped. Exiting..."
         exit 1
     fi
@@ -359,7 +358,7 @@ while true; do
         echo "Realmd service has stopped. Exiting..."
         exit 1
     fi
-    if ! curl -s "http://localhost" > /dev/null; then
+    if ! curl -s "http://localhost:8080" > /dev/null; then
         echo "Website service has stopped. Exiting..."
         exit 1
     fi
