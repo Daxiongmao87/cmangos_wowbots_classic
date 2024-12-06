@@ -1,0 +1,6 @@
+client/*
+!client/CLIENT.md
+data/
+db/
+etc/
+docker-compose.y*

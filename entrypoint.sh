@@ -237,7 +237,7 @@ echo "CMaNGOS server started in detached screen."
 
 # Start the realmd service
 echo "Starting realmd..."
-./realmd -c $HOME/server/run/etc/realmd.conf &
+screen -dmS realmd ./realmd -c $HOME/server/run/etc/realmd.conf
 echo "Realmd started successfully."
 
 #Update website's config.php with the mysql information
@@ -303,7 +303,9 @@ echo "Starting Nginx and php-fpm services..."
 sudo nginx -g 'daemon off;' &
 sudo php-fpm8.1 -F &
 echo "Nginx started."
-
+while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 | grep -q "^2"; do
+    sleep 5
+done
 
 website_db_exists=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SHOW DATABASES LIKE 'website';")
 if [ "$website_db_exists" != "website" ]; then
@@ -341,10 +343,10 @@ if [ "$website_db_exists" != "website" ]; then
 fi
 
 echo "-------------------------------_"
-echo "MariaDB is now running."
-echo "Mangosd is now running."
-echo "Realmd is now running."
-echo "Website is now running."
+echo "[MariaDB] is now running. To monitor logs, use: docker exec -t $HOSTNAME monitor mariadb"
+echo "[Mangosd] is now running. To monitor logs, use: docker exec -t $HOSTNAME monitor mangosd"
+echo "[Realmd]  is now running. To monitor logs, use: docker exec -t $HOSTNAME monitor realmd"
+echo "[Website] is now running. To monitor logs, use: docker exec -t $HOSTNAME monitor website"
 while true; do
     if ! pgrep -x "mysqld_safe" > /dev/null; then
         echo "MariaDB service has stopped. Exiting..."

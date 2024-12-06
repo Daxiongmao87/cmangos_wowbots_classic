@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  cmangos_wowbots_classic:
+    build: .
+    container_name: wow_bots_classic
+    volumes:
+      - ./client:/home/mangos/client:ro # Wow Classic Client Path
+      - ./data:/home/mangos/server/client-data:U
+      - ./db:/var/lib/mysql:U
+      - ./etc:/home/mangos/server/run/etc:U
+    ports:
+      - "8085:8085" # Game server port
+      - "3724:3724" # Realm daemon port
+      - "8082:8080" # Web server port
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=classicmangos
+      - MYSQL_USER=mangos
+      - MYSQL_PASSWORD=mangos
+      - ADMIN_USER=Administrator
+      - ADMIN_PASSWORD=Administrator
+      - SERVER_NAME="CMaNGOS WoWBots Classic" #Realm Name and Website Name
+      - SERVER_ADDRESS=127.0.0.1 #Change this to your server's/realmlist's IP
+      - WEBSITE_PUBLIC_URL="http://127.0.0.1:8080/" #Change this to where your website will be reachable
+      - TIMEZONE="America/Chicago"
+    restart: unless-stopped

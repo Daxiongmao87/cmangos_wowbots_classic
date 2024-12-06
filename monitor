@@ -1,0 +1,18 @@
+#!/bin/bash
+option=${1,,}
+case "$option" in 
+  mariadb)
+    tail -n +1 -f /var/log/mysqld.log
+    ;;
+  mangosd)
+    screen -d mangosd; screen -r mangosd
+    ;;
+  realmd)
+    screen -d realmd; screen -r realmd
+    ;;
+  website)
+    sudo tail -n +1 -f /var/log/access.log /var/log/nginx/error.log
+    ;;
+  *)
+    echo "No monitoring function for $option."
+esac
