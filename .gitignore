@@ -1,3 +1,5 @@
+## Project gitignore
+.env
 client/*
 !client/CLIENT.md
 data/
