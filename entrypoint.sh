@@ -45,9 +45,14 @@ else
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
 fi
 
+# Set names for databases
+MANGOS_DBNAME="${WOW_EXPANSION}mangos"
+CHARACTERS_DBNAME="${WOW_EXPANSION}characters"
+REALMD_DBNAME="${WOW_EXPANSION}realmd"
+
 # Check if the databases already exist and create them if they do not
 echo "Checking if databases exist..."
-for DB in classicmangos classiccharacters classicrealmd; do
+for DB in $MANGOS_DBNAME $CHARACTERS_DBNAME $REALMD_DBNAME; do
     DB_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SHOW DATABASES LIKE '$DB';")
     if [ "$DB_EXISTS" = "$DB" ]; then
         echo "Database $DB already exists."
@@ -59,11 +64,11 @@ for DB in classicmangos classiccharacters classicrealmd; do
 done
 mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
 
-# Check if the 'classicmangos' database exists and has the necessary tables
-DB_EXISTS=$(mysql -umangos -pmangos -se "SHOW DATABASES LIKE 'classicmangos';")
-TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES IN classicmangos LIKE 'ai_playerbot_enchants';")
+# Check if the mangos database exists and has the necessary tables
+DB_EXISTS=$(mysql -umangos -pmangos -se "SHOW DATABASES LIKE '$MANGOS_DBNAME';")
+TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES IN $MANGOS_DBNAME LIKE 'ai_playerbot_enchants';")
 
-if [ "$DB_EXISTS" = "classicmangos" ] && [ "$TABLE_EXISTS" = "ai_playerbot_enchants" ]; then
+if [ "$DB_EXISTS" = "$MANGOS_DBNAME" ] && [ "$TABLE_EXISTS" = "ai_playerbot_enchants" ]; then
     echo "Classic-DB with playerbots already set up. Skipping..."
 else
     echo "Setting up Classic-DB with playerbots enabled..."
@@ -110,12 +115,12 @@ for sql_file in $BOTS_SQL_DIR/characters/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" classiccharacters)
+    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" "$CHARACTERS_DBNAME")
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos classiccharacters < "$sql_file"
+        mysql -umangos -pmangos "$CHARACTERS_DBNAME" < "$sql_file"
     fi
 done
 echo "Character database updated successfully."
@@ -126,31 +131,31 @@ for sql_file in $BOTS_SQL_DIR/world/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" classicmangos)
+    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" $MANGOS_DBNAME)
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos classicmangos < "$sql_file"
+        mysql -umangos -pmangos $MANGOS_DBNAME < "$sql_file"
     fi
 done
 echo "World database updated successfully."
 
 # Apply expansion-specific SQL updates to the 'world' database
-echo "Applying playerbots SQL updates to the 'world' database for the Classic expansion..."
+echo "Applying playerbots SQL updates to the 'world' database for the ${WOW_EXPANSION} expansion..."
 for sql_file in $BOTS_SQL_DIR/world/classic/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" classicmangos)
+    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" $MANGOS_DBNAME)
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos classicmangos < "$sql_file"
+        mysql -umangos -pmangos $MANGOS_DBNAME < "$sql_file"
     fi
 done
-echo "World database for the Classic expansion updated successfully."
+echo "World database for the ${WOW_EXPANSION} expansion updated successfully."
 
 # Copy aiplayerbot.conf
 mkdir -p $HOME/server/run/etc
@@ -246,8 +251,8 @@ sed -i "s/define('DB_HOST', '.*');/define('DB_HOST', '127.0.0.1');/" $CONFIG_PHP
 sed -i "s/define('DB_USERNAME', '.*');/define('DB_USERNAME', 'root');/" $CONFIG_PHP
 sed -i "s/define('DB_PASSWORD', '.*');/define('DB_PASSWORD', 'root');/" $CONFIG_PHP
 sed -i "s/define('DB_REALMD', '.*');/define('DB_REALMD', 'classicrealmd');/" $CONFIG_PHP
-sed -i "s/'mangosd_classic'/'classicmangos'/" $CONFIG_PHP
-sed -i "s/'characters_classic'/'classiccharacters'/" $CONFIG_PHP
+sed -i "s/'mangosd_classic'/'$MANGOS_DBNAME'/" $CONFIG_PHP
+sed -i "s/'characters_classic'/'"$CHARACTERS_DBNAME"'/" $CONFIG_PHP
 sed -i "s/define('WEBSITE_NAME', '.*');/define('WEBSITE_NAME', '$SERVER_NAME');/" $CONFIG_PHP
 sed -i "s/define('WEBSITE_TIMEZONE', '.*');/define('WEBSITE_TIMEZONE', '${TIMEZONE//\//\\/}');/" $CONFIG_PHP
 

@@ -1,27 +1,32 @@
-version: '3.8'
-
 services:
   cmangos_wowbots_classic:
-    build: .
+    build:
+      context: .
+      args:
+      - WOW_EXPANSION=${WOW_EXPANSION:?err}
+      - MANGOS_COMMIT=${MANGOS_COMMIT_SHA:?err}
+      - DB_COMMIT=${DB_COMMIT_SHA:?err}
+      - WEBSITE_COMMIT=${WEBSITE_COMMIT_SHA:?err}
     container_name: wow_bots_classic
     volumes:
-      - ./client:/home/mangos/client:ro # Wow Classic Client Path
-      - ./data:/home/mangos/server/client-data:U
-      - ./db:/var/lib/mysql:U
-      - ./etc:/home/mangos/server/run/etc:U
+      - ${WOW_CLIENT_PATH}:/home/mangos/client:ro
+      - ${CLIENT_DATA_PATH}:/home/mangos/server/client-data:U
+      - ${DB_PATH}:/var/lib/mysql:U
+      - ${ETC_PATH}:/home/mangos/server/run/etc:U
     ports:
-      - "8085:8085" # Game server port
-      - "3724:3724" # Realm daemon port
-      - "8082:8080" # Web server port
+      - "${GAME_SERVER_PORT:?err}:8085"
+      - "${REALM_DAEMON_PORT:?err}:3724"
+      - "${WEB_SERVER_PORT:?err}:8080"
     environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=classicmangos
-      - MYSQL_USER=mangos
-      - MYSQL_PASSWORD=mangos
-      - ADMIN_USER=Administrator
-      - ADMIN_PASSWORD=Administrator
-      - SERVER_NAME="CMaNGOS WoWBots Classic" #Realm Name and Website Name
-      - SERVER_ADDRESS=127.0.0.1 #Change this to your server's/realmlist's IP
-      - WEBSITE_PUBLIC_URL="http://127.0.0.1:8080/" #Change this to where your website will be reachable
-      - TIMEZONE="America/Chicago"
+      - WOW_EXPANSION=${WOW_EXPANSION:?err}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?err}
+      - MYSQL_DATABASE=${WOW_EXPANSION:?err}mangos
+      - MYSQL_USER=${MYSQL_USER:?err}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?err}
+      - ADMIN_USER=${ADMIN_USER:?err}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?err}
+      - SERVER_NAME=${SERVER_NAME:?err}
+      - SERVER_ADDRESS=${SERVER_ADDRESS:?err}
+      - WEBSITE_PUBLIC_URL="${SERVER_ADDRESS}:${WEB_SERVER_PORT}/"
+      - TIMEZONE=${TIMEZONE:?err}
     restart: unless-stopped
