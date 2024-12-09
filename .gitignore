@@ -6,6 +6,9 @@ data/
 db/
 etc/
 docker-compose.y*
+classic
+wotlk
+tbc
 
 
 ## Mac OS gitignore

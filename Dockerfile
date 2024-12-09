@@ -4,8 +4,8 @@ FROM ubuntu:22.04
 # Set environment variables to non-interactive
 ENV DEBIAN_FRONTEND=noninteractive
 
+# controlled in .env file
 ARG WOW_EXPANSION
-# Specify default commit hashes (these can be overridden during build time)
 ARG MANGOS_COMMIT_SHA
 ARG DB_COMMIT_SHA
 ARG WEBSITE_COMMIT_SHA
@@ -96,7 +96,7 @@ ARG USE_PCH="ON"
 ARG EXTRA_BUILD_OPTIONS="-DBUILD_PLAYERBOTS=ON -DBUILD_AHBOT=ON -DBUILD_EXTRACTORS=ON"
 
 RUN mkdir build && cd build && \
-    cmake .. -DCMAKE_INSTALL_PREFIX=/home/mangos/server/run -DPCH=${USE_PCH} -DDEBUG=0 ${EXTRA_BUILD_OPTIONS} && \
+    cmake .. -DBoost_ARCHITECTURE=-x64 -DCMAKE_INSTALL_PREFIX=/home/mangos/server/run -DPCH=${USE_PCH} -DDEBUG=0 ${EXTRA_BUILD_OPTIONS} && \
     make -j $(nproc) && make install
 
 # Copy monitor script and set permissions
