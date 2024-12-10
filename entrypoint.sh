@@ -65,8 +65,8 @@ done
 mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
 
 # Check if the mangos database exists and has the necessary tables
-DB_EXISTS=$(mysql -umangos -pmangos -se "SHOW DATABASES LIKE '$MANGOS_DBNAME';")
-TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES IN $MANGOS_DBNAME LIKE 'ai_playerbot_enchants';")
+DB_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW DATABASES LIKE '$MANGOS_DBNAME';")
+TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES IN $MANGOS_DBNAME LIKE 'ai_playerbot_enchants';")
 
 if [ "$DB_EXISTS" = "$MANGOS_DBNAME" ] && [ "$TABLE_EXISTS" = "ai_playerbot_enchants" ]; then
     echo "${WOW_EXPANSION}-DB with playerbots already set up. Skipping..."
@@ -97,14 +97,14 @@ fi
 
 # Update reamlist table in the realmd database to match SERVER_ADDRESS
 echo "Updating realmlist entry's address in the '${WOW_EXPANSION}realmd' database..."
-mysql -umangos -pmangos -e "UPDATE ${WOW_EXPANSION}realmd.realmlist SET address = '$SERVER_ADDRESS';"
-updated_realm=$(mysql -umangos -pmangos -se "SELECT address FROM ${WOW_EXPANSION}realmd.realmlist;")
+mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -e "UPDATE ${WOW_EXPANSION}realmd.realmlist SET address = '$SERVER_ADDRESS';"
+updated_realm=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SELECT address FROM ${WOW_EXPANSION}realmd.realmlist;")
 echo "Realmlist table updated to $updated_realm."
 
 # Update realmlist table in the realmd database to match SERVER_NAME
 echo "Updating realmlist entry's name in the '${WOW_EXPANSION}realmd' database..."
-mysql -umangos -pmangos -e "UPDATE ${WOW_EXPANSION}realmd.realmlist SET name = '$SERVER_NAME';"
-updated_realm=$(mysql -umangos -pmangos -se "SELECT name FROM ${WOW_EXPANSION}realmd.realmlist;")
+mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -e "UPDATE ${WOW_EXPANSION}realmd.realmlist SET name = '$SERVER_NAME';"
+updated_realm=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SELECT name FROM ${WOW_EXPANSION}realmd.realmlist;")
 echo "Realmlist table updated to $updated_realm."
 
 
@@ -115,12 +115,12 @@ for sql_file in $BOTS_SQL_DIR/characters/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" "$CHARACTERS_DBNAME")
+    TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES LIKE '$TABLE_NAME';" "$CHARACTERS_DBNAME")
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos "$CHARACTERS_DBNAME" < "$sql_file"
+        mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} "$CHARACTERS_DBNAME" < "$sql_file"
     fi
 done
 echo "Character database updated successfully."
@@ -131,12 +131,12 @@ for sql_file in $BOTS_SQL_DIR/world/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" $MANGOS_DBNAME)
+    TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES LIKE '$TABLE_NAME';" $MANGOS_DBNAME)
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos $MANGOS_DBNAME < "$sql_file"
+        mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} $MANGOS_DBNAME < "$sql_file"
     fi
 done
 echo "World database updated successfully."
@@ -147,12 +147,12 @@ for sql_file in $BOTS_SQL_DIR/world/${WOW_EXPANSION}/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" $MANGOS_DBNAME)
+    TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES LIKE '$TABLE_NAME';" $MANGOS_DBNAME)
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos $MANGOS_DBNAME < "$sql_file"
+        mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} $MANGOS_DBNAME < "$sql_file"
     fi
 done
 echo "World database for the ${WOW_EXPANSION} expansion updated successfully."
@@ -334,7 +334,7 @@ if [ "$website_db_exists" != "website" ]; then
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE website;"
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON website.* TO 'mangos'@'localhost';"
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
-    mysql -umangos -pmangos website < $HOME/server/website/website.sql
+    mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} website < $HOME/server/website/website.sql
     echo "website.sql imported successfully."
     echo "Checking if admin account exists..."
     ADMIN_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SELECT EXISTS(SELECT 1 FROM ${WOW_EXPANSION}realmd.account WHERE username = '$ADMIN_USER');")
@@ -342,7 +342,7 @@ if [ "$website_db_exists" != "website" ]; then
         curl localhost:8080/account/create -s -o /dev/null -X POST --data-raw "username=$(urlencode "$ADMIN_USER")&email=noreply%40noreply.com&password=$(urlencode "$ADMIN_PASSWORD")&password_confirm=$(urlencode "$ADMIN_PASSWORD")"
         echo "Admin account created successfully."
     fi
-    admin_id=$(mysql -umangos -pmangos -se "SELECT id FROM website.account WHERE nickname = '$ADMIN_USER';")
+    admin_id=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SELECT id FROM website.account WHERE nickname = '$ADMIN_USER';")
     echo "Inserting news entry..."
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "\
         INSERT INTO website.news VALUES ('1', '$(date +%s)', '$admin_id', '${SERVER_NAME} is Now Live! Rediscover ${WOW_EXPANSION} Azeroth', 'Welcome back to the ${WOW_EXPANSION} era of World of Warcraft with [b]${SERVER_NAME}[/b]! Immerse yourself in the original, unaltered Azeroth as it was meant to be experienced.\n\
