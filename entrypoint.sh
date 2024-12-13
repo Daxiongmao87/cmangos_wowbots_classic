@@ -81,7 +81,7 @@ else
     echo "Generating InstallFullDB.config..."
     sed -i 's/clear/:/g' InstallFullDB.sh
     ./InstallFullDB.sh &> /dev/null
-    # Update InstallFullDB.config to enable playerbotis
+    # Update InstallFullDB.config to enable playerbots
     echo "Updating InstallFullDB.config..."
     sed -i 's|PLAYERBOTS_DB="NO"|PLAYERBOTS_DB="YES"|g' InstallFullDB.config
     sed -i 's|AHBOT="NO"|AHBOT="YES"|g' InstallFullDB.config
