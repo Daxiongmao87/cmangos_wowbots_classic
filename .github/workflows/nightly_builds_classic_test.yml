@@ -9,6 +9,9 @@ on:
     workflows: ["ubuntu.yml", "build-release.yml"]
     types:
       - completed
+      
+permissions:
+  contents: write
 
 jobs:
   nightly_build:
