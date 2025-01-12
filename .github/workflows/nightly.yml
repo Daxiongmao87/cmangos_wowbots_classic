@@ -12,6 +12,10 @@ on:
 jobs:
   fetch_commits:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        expansion: [classic, tbc, wotlk] # Add flexibility for different expansions
+
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v2
@@ -19,21 +23,19 @@ jobs:
       - name: Fetch mangosd commit
         id: fetch_mangosd_commit
         run: |
-          # Fetch the latest successful mangosd commit from the respective repositories
           MANGOSD_COMMIT=$(curl -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/cmangos/mangos-classic/actions/runs?status=success | jq -r ".workflow_runs[0].head_sha")
+          https://api.github.com/repos/cmangos/mangos-${{ matrix.expansion }}/actions/runs?status=success | jq -r ".workflow_runs[0].head_sha")
           echo "::set-output name=mangosd_commit::$MANGOSD_COMMIT"
 
       - name: Fetch database commit
         id: fetch_db_commit
         run: |
-          # Fetch the latest successful database commit from the respective repositories
           DB_COMMIT=$(curl -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/cmangos/classic-db/actions/runs?status=success | jq -r ".workflow_runs[0].head_sha")
+          https://api.github.com/repos/cmangos/${{ matrix.expansion }}-db/actions/runs?status=success | jq -r ".workflow_runs[0].head_sha")
           DB_COMMIT_DATE=$(curl -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/cmangos/classic-db/commits/$DB_COMMIT | jq -r ".commit.committer.date")
+          https://api.github.com/repos/cmangos/${{ matrix.expansion }}-db/commits/$DB_COMMIT | jq -r ".commit.committer.date")
           MANGOSD_COMMIT_DATE=$(curl -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/cmangos/mangos-classic/commits/${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }} | jq -r ".commit.committer.date")
+          https://api.github.com/repos/cmangos/mangos-${{ matrix.expansion }}/commits/${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }} | jq -r ".commit.committer.date")
           
           if [[ "$DB_COMMIT_DATE" > "$MANGOSD_COMMIT_DATE" ]]; then
             echo "No valid database commit found that is not newer than the mangosd commit."
@@ -44,6 +46,10 @@ jobs:
   build_and_tag:
     needs: fetch_commits
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        expansion: [classic, tbc, wotlk] # Add flexibility for different expansions
+
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v2
@@ -62,12 +68,23 @@ jobs:
       - name: Create nightly tag
         run: |
           DATE=$(date +'%Y-%m-%d')
-          TAG_NAME="nightly-classic-${DATE}"
+          TAG_NAME="nightly-${{ matrix.expansion }}-${DATE}"
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
       - name: Commit and push .env
         run: |
           git add .env
-          git commit -m "Update .env with new commit SHAs"
+          git commit -m "Update .env with new commit SHAs for ${{ matrix.expansion }}"
           git push origin main
+
+      - name: Notify via Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "Nightly build failed for cmangos_wowbots_classic ${{ matrix.expansion }}."
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
