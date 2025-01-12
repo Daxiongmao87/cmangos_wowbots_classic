@@ -59,10 +59,10 @@ RUN apt-get update && apt-get install -y \
 ARG BOOST_VERSION="1.83.0"
 RUN apt-get update && apt-get install -y bash && \
     wget https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz && \
-    tar xfz boost_$(echo ${BOOST_VERSION} | tr '.' '_').tar.gz && \
-    cd boost_$(echo ${BOOST_VERSION} | tr '.' '_') && \
+    tar xfz boost_${BOOST_VERSION//./_}.tar.gz && \
+    cd boost_${BOOST_VERSION//._}) && \
     ./bootstrap.sh --prefix=/usr/local && ./b2 install && \
-    cd .. && rm -rf boost_$(echo ${BOOST_VERSION} | tr '.' '_')*
+    cd .. && rm -rf boost_${BOOST_VERSION//./_}*
 
 # Set default compiler to GCC-12 and G++
 ENV CC=gcc-12
