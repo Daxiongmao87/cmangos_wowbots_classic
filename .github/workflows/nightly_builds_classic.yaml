@@ -9,7 +9,7 @@ on:
     workflows: ["ubuntu.yml", "build-release.yml"]
     types:
       - completed
-      
+
 permissions:
   contents: write
 
@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v2
+        with:
+          persist-credentials: true
 
       - name: Fetch mangosd commit
         id: fetch_mangosd_commit
@@ -51,9 +53,6 @@ jobs:
       
           echo "No valid database commit found that is not newer than the mangosd commit."
           exit 1
-
-      - name: Checkout this repository
-        uses: actions/checkout@v2
 
       - name: Update .env.template and rename to .env
         run: |
