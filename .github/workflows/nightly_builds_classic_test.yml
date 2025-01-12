@@ -75,13 +75,9 @@ jobs:
           git commit -m "Update .env with new commit SHAs for $EXPANSION"
           git push origin main
 
-      - name: Notify via Slack
-        if: failure()
-        uses: slackapi/slack-github-action@v1.23.0
-        with:
-          payload: |
-            {
-              "text": "Nightly build failed for cmangos_wowbots_classic $EXPANSION."
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Create GitHub release
+        run: |
+          DATE=$(date +'%Y-%m-%d')
+          TAG_NAME="nightly-$EXPANSION-${DATE}"
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          gh release create $TAG_NAME --title "Nightly Build - $EXPANSION - $DATE" --notes "Nightly build for $EXPANSION on $DATE."
