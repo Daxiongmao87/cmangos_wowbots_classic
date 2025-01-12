@@ -58,7 +58,7 @@ RUN apt-get update && apt-get install -y \
 # Install Boost manually to match the GitHub Action Boost version
 ARG BOOST_VERSION="1.83.0"
 RUN apt-get update && apt-get install -y bash && \
-    wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source/boost_$(echo ${BOOST_VERSION} | tr '.' '_').tar.gz && \
+    wget https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz && \
     tar xfz boost_$(echo ${BOOST_VERSION} | tr '.' '_').tar.gz && \
     cd boost_$(echo ${BOOST_VERSION} | tr '.' '_') && \
     ./bootstrap.sh --prefix=/usr/local && ./b2 install && \
