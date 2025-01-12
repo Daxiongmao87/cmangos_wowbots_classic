@@ -1,0 +1,70 @@
+name: Monitor and Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run daily at midnight
+  workflow_run:
+    workflows: ["ubuntu.yml", "build-release.yml"]
+    types:
+      - completed
+
+jobs:
+  fetch_commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v2
+
+      - name: Fetch mangosd commit
+        id: fetch_mangosd_commit
+        run: |
+          # Fetch the latest successful mangosd commit from the respective repositories
+          MANGOSD_COMMIT=$(curl -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/cmangos/mangos-classic/actions/runs?status=success | jq -r ".workflow_runs[0].head_sha")
+          echo "::set-output name=mangosd_commit::$MANGOSD_COMMIT"
+
+      - name: Fetch database commit
+        id: fetch_db_commit
+        run: |
+          # Fetch the latest successful database commit from the respective repositories
+          DB_COMMIT=$(curl -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/cmangos/classic-db/actions/runs?status=success | jq -r ".workflow_runs[0].head_sha")
+          DB_COMMIT_DATE=$(curl -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/cmangos/classic-db/commits/$DB_COMMIT | jq -r ".commit.committer.date")
+          MANGOSD_COMMIT_DATE=$(curl -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/cmangos/mangos-classic/commits/${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }} | jq -r ".commit.committer.date")
+          
+          if [[ "$DB_COMMIT_DATE" > "$MANGOSD_COMMIT_DATE" ]]; then
+            echo "No valid database commit found that is not newer than the mangosd commit."
+            exit 1
+          fi
+          echo "::set-output name=db_commit::$DB_COMMIT"
+
+  build_and_tag:
+    needs: fetch_commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v2
+
+      - name: Build with specific commits
+        run: |
+          # Checkout the specific commits and perform the build
+          git checkout ${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }}
+          git checkout ${{ steps.fetch_db_commit.outputs.db_commit }}
+          # Run the build commands here
+
+      - name: Create nightly tag
+        run: |
+          DATE=$(date +'%Y-%m-%d')
+          TAG_NAME="nightly-classic-${DATE}"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+
+      - name: Update .env.template
+        run: |
+          sed -i "s/MANGOS_COMMIT_SHA=.*/MANGOS_COMMIT_SHA=${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }}/" .env.template
+          sed -i "s/DB_COMMIT_SHA=.*/DB_COMMIT_SHA=${{ steps.fetch_db_commit.outputs.db_commit }}/" .env.template
+          git add .env.template
+          git commit -m "Update .env.template with new commit SHAs"
+          git push origin main
