@@ -74,8 +74,8 @@ jobs:
 
       - name: Commit and push .env
         run: |
-          git add .env
-          git commit -m "Update .env with new commit SHAs for $EXPANSION"
+          git add .env.template
+          git commit -m "Update .env.template with new commit SHAs for $EXPANSION"
           git push origin main
 
       - name: Create GitHub release
