@@ -60,7 +60,6 @@ jobs:
 
       - name: Build with Docker
         run: |
-          cat .env
           docker compose build
 
       - name: Create nightly tag
