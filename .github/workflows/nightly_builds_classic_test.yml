@@ -1,5 +1,6 @@
-name: Nightly Build
-
+name: Nightly Build - Classic
+env:
+  EXPANSION: classic
 on:
   workflow_dispatch:
   schedule:
@@ -10,11 +11,8 @@ on:
       - completed
 
 jobs:
-  fetch_commits:
+  nightly_build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        expansion: [classic]
 
     steps:
       - name: Checkout this repository
@@ -51,14 +49,6 @@ jobs:
           echo "No valid database commit found that is not newer than the mangosd commit."
           exit 1
 
-  build_and_tag:
-    needs: fetch_commits
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        expansion: [classic]
-
-    steps:
       - name: Checkout this repository
         uses: actions/checkout@v2
 
