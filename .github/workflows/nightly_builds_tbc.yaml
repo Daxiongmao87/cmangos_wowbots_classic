@@ -1,4 +1,4 @@
-name: Nightly Build - Classic
+name: Nightly Build - The Burning Crusade
 env:
   EXPANSION: tbc
 on:
