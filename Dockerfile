@@ -56,13 +56,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Boost manually to match the GitHub Action Boost version
-ARG BOOST_VERSION="1.83.0"
-RUN apt-get update && apt-get install -y bash && \
-    wget https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz && \
-    tar xfz boost_${BOOST_VERSION//./_}.tar.gz && \
-    cd boost_${BOOST_VERSION//._} && \
+ARG BOOST_VERSION=1.83.0
+ARG BOOST_VERSION_USCORE="${BOOST_VERSION//./_}"
+RUN apt-get update && apt-get install -y bash
+
+RUN wget https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_USCORE}.tar.gz && \
+    tar xfz boost_${BOOST_VERSION_USCORE}.tar.gz && \
+    cd boost_${BOOST_VERSION_USCORE} && \
     ./bootstrap.sh --prefix=/usr/local && ./b2 install && \
-    cd .. && rm -rf boost_${BOOST_VERSION//./_}*
+    cd .. && rm -rf boost_${BOOST_VERSION_USCORE}*
 
 # Set default compiler to GCC-12 and G++
 ENV CC=gcc-12
