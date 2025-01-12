@@ -1,4 +1,4 @@
-name: Nightly Build - Classic
+name: Nightly Build - Wrath of the Lich King
 env:
   EXPANSION: wotlk
 on:
