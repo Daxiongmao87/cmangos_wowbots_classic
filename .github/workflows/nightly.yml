@@ -47,12 +47,16 @@ jobs:
       - name: Checkout this repository
         uses: actions/checkout@v2
 
-      - name: Build with specific commits
+      - name: Update .env.template and rename to .env
         run: |
-          # Checkout the specific commits and perform the build
-          git checkout ${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }}
-          git checkout ${{ steps.fetch_db_commit.outputs.db_commit }}
-          # Run the build commands here
+          sed -i "s/MANGOS_COMMIT_SHA=.*/MANGOS_COMMIT_SHA=${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }}/" .env.template
+          sed -i "s/DB_COMMIT_SHA=.*/DB_COMMIT_SHA=${{ steps.fetch_db_commit.outputs.db_commit }}/" .env.template
+          mv .env.template .env
+          cat .env
+
+      - name: Build with Docker
+        run: |
+          docker-compose up --build -d
 
       - name: Create nightly tag
         run: |
@@ -61,10 +65,8 @@ jobs:
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
-      - name: Update .env.template
+      - name: Commit and push .env
         run: |
-          sed -i "s/MANGOS_COMMIT_SHA=.*/MANGOS_COMMIT_SHA=${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }}/" .env.template
-          sed -i "s/DB_COMMIT_SHA=.*/DB_COMMIT_SHA=${{ steps.fetch_db_commit.outputs.db_commit }}/" .env.template
-          git add .env.template
-          git commit -m "Update .env.template with new commit SHAs"
+          git add .env
+          git commit -m "Update .env with new commit SHAs"
           git push origin main
