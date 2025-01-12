@@ -60,7 +60,7 @@ ARG BOOST_VERSION="1.83.0"
 RUN apt-get update && apt-get install -y bash && \
     wget https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz && \
     tar xfz boost_${BOOST_VERSION//./_}.tar.gz && \
-    cd boost_${BOOST_VERSION//._}) && \
+    cd boost_${BOOST_VERSION//._} && \
     ./bootstrap.sh --prefix=/usr/local && ./b2 install && \
     cd .. && rm -rf boost_${BOOST_VERSION//./_}*
 
