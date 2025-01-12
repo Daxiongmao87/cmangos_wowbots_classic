@@ -56,7 +56,7 @@ jobs:
 
       - name: Build with Docker
         run: |
-          docker-compose up --build -d
+          docker-compose build
 
       - name: Create nightly tag
         run: |
