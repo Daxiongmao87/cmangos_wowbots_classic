@@ -45,9 +45,14 @@ else
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
 fi
 
+# Set names for databases
+MANGOS_DBNAME="${WOW_EXPANSION}mangos"
+CHARACTERS_DBNAME="${WOW_EXPANSION}characters"
+REALMD_DBNAME="${WOW_EXPANSION}realmd"
+
 # Check if the databases already exist and create them if they do not
 echo "Checking if databases exist..."
-for DB in classicmangos classiccharacters classicrealmd; do
+for DB in $MANGOS_DBNAME $CHARACTERS_DBNAME $REALMD_DBNAME; do
     DB_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SHOW DATABASES LIKE '$DB';")
     if [ "$DB_EXISTS" = "$DB" ]; then
         echo "Database $DB already exists."
@@ -59,14 +64,14 @@ for DB in classicmangos classiccharacters classicrealmd; do
 done
 mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
 
-# Check if the 'classicmangos' database exists and has the necessary tables
-DB_EXISTS=$(mysql -umangos -pmangos -se "SHOW DATABASES LIKE 'classicmangos';")
-TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES IN classicmangos LIKE 'ai_playerbot_enchants';")
+# Check if the mangos database exists and has the necessary tables
+DB_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW DATABASES LIKE '$MANGOS_DBNAME';")
+TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES IN $MANGOS_DBNAME LIKE 'ai_playerbot_enchants';")
 
-if [ "$DB_EXISTS" = "classicmangos" ] && [ "$TABLE_EXISTS" = "ai_playerbot_enchants" ]; then
-    echo "Classic-DB with playerbots already set up. Skipping..."
+if [ "$DB_EXISTS" = "$MANGOS_DBNAME" ] && [ "$TABLE_EXISTS" = "ai_playerbot_enchants" ]; then
+    echo "${WOW_EXPANSION}-DB with playerbots already set up. Skipping..."
 else
-    echo "Setting up Classic-DB with playerbots enabled..."
+    echo "Setting up ${WOW_EXPANSION}-DB with playerbots enabled..."
     echo "Removing creation of default accounts..."
     sed -i '/-- Dumping data for table `account`/,/UNLOCK TABLES;/d' $CORE_PATH/sql/base/realmd.sql
     echo "Removed default account creation sql statements."
@@ -76,30 +81,30 @@ else
     echo "Generating InstallFullDB.config..."
     sed -i 's/clear/:/g' InstallFullDB.sh
     ./InstallFullDB.sh &> /dev/null
-    # Update InstallFullDB.config to enable playerbotis
+    # Update InstallFullDB.config to enable playerbots
     echo "Updating InstallFullDB.config..."
     sed -i 's|PLAYERBOTS_DB="NO"|PLAYERBOTS_DB="YES"|g' InstallFullDB.config
     sed -i 's|AHBOT="NO"|AHBOT="YES"|g' InstallFullDB.config
-    echo "Running InstallFullDB.sh to setup Classic-DB with playerbots..."
+    echo "Running InstallFullDB.sh to setup ${WOW_EXPANSION}-DB with playerbots..."
     sed -i "s|MYSQL_PATH=\"\"|MYSQL_PATH=\"$MYSQL_PATH\"|g" InstallFullDB.config
     sed -i "s|CORE_PATH=\"\"|CORE_PATH=\"$CORE_PATH\"|g" InstallFullDB.config
     export TERM=xterm
     ./InstallFullDB.sh -InstallAll root $MYSQL_ROOT_PASSWORD DeleteAll
     echo "Success? $?"
-    echo "Classic-DB setup with playerbots enabled successfully."
+    echo "${WOW_EXPANSION}-DB setup with playerbots enabled successfully."
     init_accounts="true"
 fi
 
-# Update reamlist table in the 'classicrealmd' database to match SERVER_ADDRESS
-echo "Updating realmlist entry's address in the 'classicrealmd' database..."
-mysql -umangos -pmangos -e "UPDATE classicrealmd.realmlist SET address = '$SERVER_ADDRESS';"
-updated_realm=$(mysql -umangos -pmangos -se "SELECT address FROM classicrealmd.realmlist;")
+# Update reamlist table in the realmd database to match SERVER_ADDRESS
+echo "Updating realmlist entry's address in the '${WOW_EXPANSION}realmd' database..."
+mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -e "UPDATE ${WOW_EXPANSION}realmd.realmlist SET address = '$SERVER_ADDRESS';"
+updated_realm=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SELECT address FROM ${WOW_EXPANSION}realmd.realmlist;")
 echo "Realmlist table updated to $updated_realm."
 
-# Update realmlist table in the 'classicrealmd' database to match SERVER_NAME
-echo "Updating realmlist entry's name in the 'classicrealmd' database..."
-mysql -umangos -pmangos -e "UPDATE classicrealmd.realmlist SET name = '$SERVER_NAME';"
-updated_realm=$(mysql -umangos -pmangos -se "SELECT name FROM classicrealmd.realmlist;")
+# Update realmlist table in the realmd database to match SERVER_NAME
+echo "Updating realmlist entry's name in the '${WOW_EXPANSION}realmd' database..."
+mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -e "UPDATE ${WOW_EXPANSION}realmd.realmlist SET name = '$SERVER_NAME';"
+updated_realm=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SELECT name FROM ${WOW_EXPANSION}realmd.realmlist;")
 echo "Realmlist table updated to $updated_realm."
 
 
@@ -110,12 +115,12 @@ for sql_file in $BOTS_SQL_DIR/characters/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" classiccharacters)
+    TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES LIKE '$TABLE_NAME';" "$CHARACTERS_DBNAME")
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos classiccharacters < "$sql_file"
+        mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} "$CHARACTERS_DBNAME" < "$sql_file"
     fi
 done
 echo "Character database updated successfully."
@@ -126,31 +131,31 @@ for sql_file in $BOTS_SQL_DIR/world/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" classicmangos)
+    TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES LIKE '$TABLE_NAME';" $MANGOS_DBNAME)
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos classicmangos < "$sql_file"
+        mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} $MANGOS_DBNAME < "$sql_file"
     fi
 done
 echo "World database updated successfully."
 
 # Apply expansion-specific SQL updates to the 'world' database
-echo "Applying playerbots SQL updates to the 'world' database for the Classic expansion..."
-for sql_file in $BOTS_SQL_DIR/world/classic/*.sql; do
+echo "Applying playerbots SQL updates to the 'world' database for the ${WOW_EXPANSION} expansion..."
+for sql_file in $BOTS_SQL_DIR/world/${WOW_EXPANSION}/*.sql; do
     # Extract table name from SQL file
     TABLE_NAME=$(grep -oP 'CREATE TABLE `\K\w+' "$sql_file")
     # Check if table exists
-    TABLE_EXISTS=$(mysql -umangos -pmangos -se "SHOW TABLES LIKE '$TABLE_NAME';" classicmangos)
+    TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES LIKE '$TABLE_NAME';" $MANGOS_DBNAME)
     if [ "$TABLE_EXISTS" = "$TABLE_NAME" ]; then
         echo "Table $TABLE_NAME already exists. Skipping $sql_file..."
     else
         echo "Applying $sql_file..."
-        mysql -umangos -pmangos classicmangos < "$sql_file"
+        mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} $MANGOS_DBNAME < "$sql_file"
     fi
 done
-echo "World database for the Classic expansion updated successfully."
+echo "World database for the ${WOW_EXPANSION} expansion updated successfully."
 
 # Copy aiplayerbot.conf
 mkdir -p $HOME/server/run/etc
@@ -245,9 +250,9 @@ CONFIG_PHP="$HOME/server/website/application/config.php"
 sed -i "s/define('DB_HOST', '.*');/define('DB_HOST', '127.0.0.1');/" $CONFIG_PHP
 sed -i "s/define('DB_USERNAME', '.*');/define('DB_USERNAME', 'root');/" $CONFIG_PHP
 sed -i "s/define('DB_PASSWORD', '.*');/define('DB_PASSWORD', 'root');/" $CONFIG_PHP
-sed -i "s/define('DB_REALMD', '.*');/define('DB_REALMD', 'classicrealmd');/" $CONFIG_PHP
-sed -i "s/'mangosd_classic'/'classicmangos'/" $CONFIG_PHP
-sed -i "s/'characters_classic'/'classiccharacters'/" $CONFIG_PHP
+sed -i "s/define('DB_REALMD', '.*');/define('DB_REALMD', '${WOW_EXPANSION}realmd');/" $CONFIG_PHP
+sed -i "s/'mangosd_${WOW_EXPANSION}'/'$MANGOS_DBNAME'/" $CONFIG_PHP
+sed -i "s/'characters_${WOW_EXPANSION}'/'"$CHARACTERS_DBNAME"'/" $CONFIG_PHP
 sed -i "s/define('WEBSITE_NAME', '.*');/define('WEBSITE_NAME', '$SERVER_NAME');/" $CONFIG_PHP
 sed -i "s/define('WEBSITE_TIMEZONE', '.*');/define('WEBSITE_TIMEZONE', '${TIMEZONE//\//\\/}');/" $CONFIG_PHP
 
@@ -307,6 +312,21 @@ while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 | grep -q "
     sleep 5
 done
 
+case "${WOW_EXPANSION}" in
+    "classic")
+        WOW_VERSION="1.21.1"
+        ;;
+    "tbc")
+        WOW_VERSION="2.4.3"
+        ;;
+    "wotlk")
+        WOW_VERSION="3.3.5a"
+        ;;
+    *)
+        WOW_VERSION="i dunno"
+        ;;
+esac
+
 website_db_exists=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SHOW DATABASES LIKE 'website';")
 if [ "$website_db_exists" != "website" ]; then
     echo "website database does not exist. Creating website database..."
@@ -314,28 +334,28 @@ if [ "$website_db_exists" != "website" ]; then
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE website;"
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON website.* TO 'mangos'@'localhost';"
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
-    mysql -umangos -pmangos website < $HOME/server/website/website.sql
+    mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} website < $HOME/server/website/website.sql
     echo "website.sql imported successfully."
     echo "Checking if admin account exists..."
-    ADMIN_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SELECT EXISTS(SELECT 1 FROM classicrealmd.account WHERE username = '$ADMIN_USER');")
+    ADMIN_EXISTS=$(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -se "SELECT EXISTS(SELECT 1 FROM ${WOW_EXPANSION}realmd.account WHERE username = '$ADMIN_USER');")
     if [ "$ADMIN_EXISTS" != 1 ]; then
         curl localhost:8080/account/create -s -o /dev/null -X POST --data-raw "username=$(urlencode "$ADMIN_USER")&email=noreply%40noreply.com&password=$(urlencode "$ADMIN_PASSWORD")&password_confirm=$(urlencode "$ADMIN_PASSWORD")"
         echo "Admin account created successfully."
     fi
-    admin_id=$(mysql -umangos -pmangos -se "SELECT id FROM website.account WHERE nickname = '$ADMIN_USER';")
+    admin_id=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SELECT id FROM website.account WHERE nickname = '$ADMIN_USER';")
     echo "Inserting news entry..."
     mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "\
-        INSERT INTO website.news VALUES ('1', '$(date +%s)', '$admin_id', '${SERVER_NAME} is Now Live! Rediscover Classic Azeroth', 'Welcome back to the classic era of World of Warcraft with [b]${SERVER_NAME}[/b]! Immerse yourself in the original, unaltered Azeroth as it was meant to be experienced.\n\
+        INSERT INTO website.news VALUES ('1', '$(date +%s)', '$admin_id', '${SERVER_NAME} is Now Live! Rediscover ${WOW_EXPANSION} Azeroth', 'Welcome back to the ${WOW_EXPANSION} era of World of Warcraft with [b]${SERVER_NAME}[/b]! Immerse yourself in the original, unaltered Azeroth as it was meant to be experienced.\n\
         \n\
         [b]Key Features:[/b]\n\
-        - [b]Authentic Blizzlike Gameplay:[/b] Every aspect of the server replicates the classic 1.12.1 experience.\n\
+        - [b]Authentic Blizzlike Gameplay:[/b] Every aspect of the server replicates the ${WOW_EXPANSION} ${WOW_VERSION} experience.\n\
         - [b]Enhanced by Bots:[/b] To ensure a thriving environment, our server includes bots that simulate a populated world, making it easy to find allies for your adventures.\n\
         \n\
         [b]Get Started:[/b]\n\
-        1. [b]Download the 1.12.1 Client:[/b] If you don\'t already have it, download the classic version 1.12.1 client.\n\
+        1. [b]Download the ${WOW_VERSION} Client:[/b] If you don\'t already have it, download the ${WOW_EXPANSION} version ${WOW_VERSION} client.\n\
         2. [b]Edit Your Realmlist.wtf File:[/b] Navigate to your WoW directory, open the \'realmlist.wtf\' file with a text editor, and replace its contents with: `set realmlist ${SERVER_ADDRESS}`.\n\
         3. [b]Create an Account:[/b] Visit ${WEBSITE_PUBLIC_URL} to register.\n\
-        4. [b]Log In and Play:[/b] Enter the world and start your classic adventure!\n\
+        4. [b]Log In and Play:[/b] Enter the world and start your ${WOW_EXPANSION} adventure!\n\
         \n\
         Sign up at [b]${SERVER_NAME}/account/create[/b] and relive the legendary tales of Azeroth as they were originally told!', '1');"
     echo "News entry inserted successfully."

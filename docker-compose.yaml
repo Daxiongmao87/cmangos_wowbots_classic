@@ -1,0 +1,32 @@
+services:
+  cmangos_wowbots_classic:
+    build:
+      context: .
+      args:
+        - WOW_EXPANSION=${WOW_EXPANSION:?err}
+        - MANGOS_COMMIT_SHA=${MANGOS_COMMIT_SHA:?err}
+        - DB_COMMIT_SHA=${DB_COMMIT_SHA:?err}
+        - WEBSITE_COMMIT_SHA=${WEBSITE_COMMIT_SHA:?err}
+    container_name: wow_bots_classic
+    volumes:
+      - ${WOW_CLIENT_PATH}:/home/mangos/client:ro
+      - ${CLIENT_DATA_PATH}:/home/mangos/server/client-data:U
+      - ${DB_PATH}:/var/lib/mysql:U
+      - ${ETC_PATH}:/home/mangos/server/run/etc:U
+    ports:
+      - "${GAME_SERVER_PORT:?err}:8085"
+      - "${REALM_DAEMON_PORT:?err}:3724"
+      - "${WEB_SERVER_PORT:?err}:8080"
+    environment:
+      - WOW_EXPANSION=${WOW_EXPANSION:?err}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?err}
+      - MYSQL_DATABASE=${WOW_EXPANSION:?err}mangos
+      - MYSQL_USER=${MYSQL_USER:?err}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?err}
+      - ADMIN_USER=${ADMIN_USER:?err}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?err}
+      - SERVER_NAME=${SERVER_NAME:?err}
+      - SERVER_ADDRESS=${SERVER_ADDRESS:?err}
+      - WEBSITE_PUBLIC_URL="${SERVER_ADDRESS}:${WEB_SERVER_PORT}/"
+      - TIMEZONE=${TIMEZONE:?err}
+    restart: unless-stopped
