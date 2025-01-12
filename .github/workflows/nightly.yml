@@ -42,7 +42,7 @@ jobs:
             DB_COMMIT_DATE_UTC=$(date -u -d "$DB_COMMIT_DATE" +%Y-%m-%dT%H:%M:%SZ)
             MANGOSD_COMMIT_DATE_UTC=$(date -u -d "$MANGOSD_COMMIT_DATE" +%Y-%m-%dT%H:%M:%SZ)
       
-            if [[ "$DB_COMMIT_DATE_UTC" <= "$MANGOSD_COMMIT_DATE_UTC" ]]; then
+            if [[ "$DB_COMMIT_DATE_UTC" < "$MANGOSD_COMMIT_DATE_UTC" ]] || [[ "$DB_COMMIT_DATE_UTC" == "$MANGOSD_COMMIT_DATE_UTC" ]]; then
               echo "::set-output name=db_commit::$COMMIT"
               exit 0
             fi
