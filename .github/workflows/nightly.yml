@@ -71,7 +71,7 @@ jobs:
 
       - name: Build with Docker
         run: |
-          docker-compose build
+          docker compose build
 
       - name: Create nightly tag
         run: |
