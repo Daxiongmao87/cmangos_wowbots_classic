@@ -71,6 +71,7 @@ jobs:
 
       - name: Build with Docker
         run: |
+          ls -la
           docker compose build
 
       - name: Create nightly tag
