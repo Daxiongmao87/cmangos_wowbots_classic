@@ -67,11 +67,10 @@ jobs:
           sed -i "s/MANGOS_COMMIT_SHA=.*/MANGOS_COMMIT_SHA=${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }}/" .env.template
           sed -i "s/DB_COMMIT_SHA=.*/DB_COMMIT_SHA=${{ steps.fetch_db_commits.outputs.db_commit }}/" .env.template
           cp .env.template .env
-          cat .env
 
       - name: Build with Docker
         run: |
-          ls -la
+          cat .env
           docker compose build
 
       - name: Create nightly tag
