@@ -1,0 +1,86 @@
+name: Nightly Build - Classic
+env:
+  EXPANSION: tbc
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # Run daily at midnight
+  workflow_run:
+    workflows: ["ubuntu.yml", "build-release.yml"]
+    types:
+      - completed
+      
+permissions:
+  contents: write
+
+jobs:
+  nightly_build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v2
+
+      - name: Fetch mangosd commit
+        id: fetch_mangosd_commit
+        run: |
+          MANGOSD_COMMIT=$(curl -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/cmangos/mangos-$EXPANSION/actions/runs?status=success | jq -r ".workflow_runs[0].head_sha")
+          echo "::set-output name=mangosd_commit::$MANGOSD_COMMIT"
+
+      - name: Fetch database commits
+        id: fetch_db_commits
+        run: |
+          DB_COMMITS=$(curl -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/cmangos/$EXPANSION-db/actions/runs?status=success | jq -r ".workflow_runs[].head_sha")
+          for COMMIT in $DB_COMMITS; do
+            DB_COMMIT_DATE=$(curl -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/cmangos/$EXPANSION-db/commits/$COMMIT | jq -r ".commit.committer.date")
+            MANGOSD_COMMIT_DATE=$(curl -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/cmangos/mangos-$EXPANSION/commits/${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }} | jq -r ".commit.committer.date")
+            
+            # Convert to UTC and compare
+            DB_COMMIT_DATE_UTC=$(date -u -d "$DB_COMMIT_DATE" +%Y-%m-%dT%H:%M:%SZ)
+            MANGOSD_COMMIT_DATE_UTC=$(date -u -d "$MANGOSD_COMMIT_DATE" +%Y-%m-%dT%H:%M:%SZ)
+      
+            if [[ "$DB_COMMIT_DATE_UTC" < "$MANGOSD_COMMIT_DATE_UTC" ]] || [[ "$DB_COMMIT_DATE_UTC" == "$MANGOSD_COMMIT_DATE_UTC" ]]; then
+              echo "::set-output name=db_commit::$COMMIT"
+              exit 0
+            fi
+          done
+      
+          echo "No valid database commit found that is not newer than the mangosd commit."
+          exit 1
+
+      - name: Checkout this repository
+        uses: actions/checkout@v2
+
+      - name: Update .env.template and rename to .env
+        run: |
+          sed -i "s/MANGOS_COMMIT_SHA=.*/MANGOS_COMMIT_SHA=${{ steps.fetch_mangosd_commit.outputs.mangosd_commit }}/" .env.template
+          sed -i "s/DB_COMMIT_SHA=.*/DB_COMMIT_SHA=${{ steps.fetch_db_commits.outputs.db_commit }}/" .env.template
+          cp .env.template .env
+
+      - name: Build with Docker
+        run: |
+          docker compose build
+
+      - name: Create nightly tag
+        run: |
+          DATE=$(date +'%Y-%m-%d')
+          TAG_NAME="nightly-$EXPANSION-${DATE}"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+
+      - name: Commit and push .env
+        run: |
+          git add .env.template
+          git commit -m "Update .env.template with new commit SHAs for $EXPANSION"
+          git push origin main
+
+      - name: Create GitHub release
+        run: |
+          DATE=$(date +'%Y-%m-%d')
+          TAG_NAME="nightly-$EXPANSION-${DATE}"
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          gh release create $TAG_NAME --title "Nightly Build - $EXPANSION - $DATE" --notes "Nightly build for $EXPANSION on $DATE."
