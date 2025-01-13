@@ -1,7 +1,6 @@
 name: Nightly Build - Classic
 env:
   EXPANSION: classic
-  TAG_NAME: "$EXPANSION-nightly-$${DATE}"
 on:
   workflow_dispatch:
   schedule:
@@ -65,23 +64,27 @@ jobs:
         run: |
           docker compose build
 
-      - name: Create nightly tag
+      - name: Set Date
         run: |
-          DATE=$(date +'%Y-%m-%d')
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
+          echo "NIGHTLY_DATE=$(date --rfc-3339=date)" >> ${GITHUB_ENV}
 
-      - name: Commit and push .env
+      - name: Commit, and push .env
         run: |
           git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"        
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
           git add .env.template
-          git commit -m "Update .env.template with new commit SHAs for $EXPANSION"
-          git push origin $TAG_NAME
+          git commit -m "Update .env.template with new successfully-built commit SHAs for $EXPANSION"
+          git push origin main
+          
+      - name: Tag commit
+        run: |
+          TAG_NAME="$EXPANSION-nightly-${NIGHTLY_DATE}"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME          
 
       - name: Create GitHub release
         run: |
           DATE=$(date +'%Y-%m-%d')
-          TAG_NAME="nightly-$EXPANSION-${DATE}"
+          TAG_NAME="$EXPANSION-nightly-${NIGHTLY_DATE}"
           GH_TOKEN=${{ github.token }}
-          gh release create $TAG_NAME --title "Nightly Build - $EXPANSION - $DATE" --notes "Nightly build for $EXPANSION on $DATE."
+          gh release create $TAG_NAME --title "Nightly Build - $EXPANSION - $NIGHTLY_DATE" --notes "Nightly build for $EXPANSION on $DATE."
