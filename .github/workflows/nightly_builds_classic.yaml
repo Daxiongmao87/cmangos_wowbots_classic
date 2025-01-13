@@ -67,7 +67,7 @@ jobs:
       - name: Create nightly tag
         run: |
           DATE=$(date +'%Y-%m-%d')
-          TAG_NAME="nightly-$EXPANSION-${DATE}"
+          TAG_NAME="EXPANSION-nightly-$${DATE}"
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
