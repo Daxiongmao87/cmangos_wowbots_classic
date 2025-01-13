@@ -1,6 +1,7 @@
 name: Nightly Build - Classic
 env:
   EXPANSION: classic
+  GH_TOKEN: ${{ github.token }}
 on:
   workflow_dispatch:
   schedule:
@@ -88,5 +89,4 @@ jobs:
         run: |
           DATE=$(date +'%Y-%m-%d')
           TAG_NAME="$EXPANSION-nightly-${NIGHTLY_DATE}"
-          GH_TOKEN=${{ github.token }}
           gh release create $TAG_NAME --title "Nightly Build - $EXPANSION - $NIGHTLY_DATE" --notes "Nightly build for $EXPANSION on $DATE."
