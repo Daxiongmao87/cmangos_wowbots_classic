@@ -93,7 +93,7 @@ RUN wget -O mangos.zip https://github.com/cmangos/mangos-${WOW_EXPANSION}/archiv
     unzip database.zip && mv ${WOW_EXPANSION}-db-${DB_COMMIT_SHA} database && \
     unzip website.zip && mv cmangos-website-${WEBSITE_COMMIT_SHA} website
 
-i# Make/compile the CMaNGOS Classic core
+# Make/compile the CMaNGOS Classic core
 WORKDIR /home/mangos/server/mangos
 
 # Set dynamic build options to match GitHub Actions flexibility
