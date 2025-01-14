@@ -40,6 +40,8 @@ jobs:
 
       - name: Checkout nightly-${{ env.EXPANSION }} and rebase from main
         run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
           git fetch origin nightly-${EXPANSION}
           git checkout nightly-${EXPANSION}
           git rebase main
@@ -108,8 +110,6 @@ jobs:
 
       - name: Commit, and push .env
         run: |
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
           if [ "$(git diff)" ]; then
             git add .env.template
             git commit -m "Update .env.template with new successfully-built commit SHAs for $EXPANSION"
