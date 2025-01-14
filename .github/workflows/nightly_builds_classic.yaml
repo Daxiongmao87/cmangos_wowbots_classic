@@ -103,11 +103,12 @@ jobs:
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          git pull
+          git checkout nightly-${EXPANSION}
+          git rebase main
           if [ "$(git diff)" ]; then 
             git add .env.template
             git commit -m "Update .env.template with new successfully-built commit SHAs for $EXPANSION"
-            git push origin main
+            git push origin nightly-${EXPANSION}
           fi
           
       - name: Tag commit
