@@ -36,10 +36,11 @@ jobs:
         uses: actions/checkout@v2
         with:
           persist-credentials: true
+          fetch-depth: 0
           
       - name: Checkout nightly-${{ env.EXPANSION }} and rebase from main
         run: |
-          git fetch origin nightly-${EXPANSION} --depth=1
+          git fetch origin nightly-${EXPANSION}
           git checkout nightly-${EXPANSION}
           git rebase main
 
