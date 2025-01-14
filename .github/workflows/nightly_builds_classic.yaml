@@ -36,7 +36,8 @@ jobs:
         uses: actions/checkout@v2
         with:
           persist-credentials: true
-      - name: Checkout mightly-$EXPANSION and rebase from main
+          
+      - name: Checkout mightly branch and rebase from main
         run: |
           git fetch origin nightly-${EXPANSION} --depth 1
           git checkout origin/nightly-${EXPANSION} --no-overlay -- docs
