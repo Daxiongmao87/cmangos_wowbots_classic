@@ -37,10 +37,10 @@ jobs:
         with:
           persist-credentials: true
           
-      - name: Checkout mightly-${{ env.EXPANSION }} and rebase from main
+      - name: Checkout nightly-${{ env.EXPANSION }} and rebase from main
         run: |
           git fetch origin nightly-${EXPANSION} --depth 1
-          git checkout origin/nightly-${EXPANSION} --no-overlay -- docs
+          git checkout origin/nightly-${EXPANSION} --no-overlay --docs
           git rebase main
 
       - name: Fetch mangos commit (if not provided)
