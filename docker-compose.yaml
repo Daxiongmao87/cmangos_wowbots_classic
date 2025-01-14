@@ -5,6 +5,7 @@ services:
       args:
         - WOW_EXPANSION=${WOW_EXPANSION:?err}
         - MANGOS_COMMIT_SHA=${MANGOS_COMMIT_SHA:?err}
+        - PLAYERBOTS_COMMIT_SHA=${PLAYERBOTS_COMMIT_SHA:?err}
         - DB_COMMIT_SHA=${DB_COMMIT_SHA:?err}
         - WEBSITE_COMMIT_SHA=${WEBSITE_COMMIT_SHA:?err}
     container_name: wow_bots_classic
