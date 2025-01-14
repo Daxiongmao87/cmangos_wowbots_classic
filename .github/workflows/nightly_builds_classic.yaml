@@ -40,7 +40,7 @@ jobs:
       - name: Checkout nightly-${{ env.EXPANSION }} and rebase from main
         run: |
           git fetch origin nightly-${EXPANSION} --depth 1
-          git checkout origin/nightly-${EXPANSION} --no-overlay
+          git checkout origin/nightly-${EXPANSION}
           git rebase main
 
       - name: Fetch mangos commit (if not provided)
