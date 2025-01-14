@@ -39,7 +39,7 @@ jobs:
           
       - name: Checkout nightly-${{ env.EXPANSION }} and rebase from main
         run: |
-          git fetch origin nightly-${EXPANSION} --depth 1
+          git fetch origin nightly-${EXPANSION} --depth=1
           git checkout nightly-${EXPANSION}
           git rebase main
 
