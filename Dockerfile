@@ -85,13 +85,15 @@ WORKDIR /home/mangos/server
 
 # Download and extract repositories using provided commit hashes
 RUN wget -O mangos.zip https://github.com/cmangos/mangos-${WOW_EXPANSION}/archive/${MANGOS_COMMIT_SHA}.zip && \
-    wget -O playerbots.zip https://github.com/cmangos/playerbots/archive/${PLAYERBOTS_COMMIT_SHA}.zip && \
     wget -O database.zip https://github.com/cmangos/${WOW_EXPANSION}-db/archive/${DB_COMMIT_SHA}.zip && \
     wget -O website.zip https://github.com/Daxiongmao87/cmangos-website/archive/${WEBSITE_COMMIT_SHA}.zip && \
-    unzip mangos.zip && mv mangos-${WOW_EXPANSION}-${MANGOS_COMMIT_SHA} mangos && \
-    mkdir mangos/src/modules && unzip playerbots.zip && mv playerbots-${PLAYERBOTS_COMMIT_SHA} mangos/src/modules/PlayerBots && \
-    unzip database.zip && mv ${WOW_EXPANSION}-db-${DB_COMMIT_SHA} database && \
-    unzip website.zip && mv cmangos-website-${WEBSITE_COMMIT_SHA} website
+    unzip mangos.zip && \
+      mv mangos-${WOW_EXPANSION}-${MANGOS_COMMIT_SHA} mangos && \
+    sed -i "/FetchContent_Declare.*PlayerBots/,/FetchContent_GetProperties/ s/\(GIT_TAG *\).*\"master\"/\1\"${PLAYERBOTS_COMMIT_SHA}\"/" mangos/src/CMakeLists.txt && \
+    unzip database.zip && \
+      mv ${WOW_EXPANSION}-db-${DB_COMMIT_SHA} database && \
+    unzip website.zip && \
+      mv cmangos-website-${WEBSITE_COMMIT_SHA} website
 
 # Make/compile the CMaNGOS Classic core
 WORKDIR /home/mangos/server/mangos
