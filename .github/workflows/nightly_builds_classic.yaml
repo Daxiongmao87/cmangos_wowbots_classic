@@ -5,8 +5,12 @@ env:
 on:
   workflow_dispatch:
     inputs:
-      mangos_commit:
+      mangosd_commit:
         description: "Enter the mangos commit SHA (leave blank for automatic selection)"
+        required: false
+        default: ""
+      playerbots_commit:
+        description: "Enter the playerbots commit SHA (leave blank for automatic selection)"
         required: false
         default: ""
       db_commit:
@@ -36,14 +40,24 @@ jobs:
       - name: Fetch mangosd commit (if not provided)
         id: fetch_mangosd_commit
         run: |
-          if [ -z "${{ github.event.inputs.mangos_commit }}" ]; then
+          if [ -z "${{ github.event.inputs.mangosd_commit }}" ]; then
             MANGOSD_COMMIT=$(curl -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/cmangos/mangos-$EXPANSION/actions/workflows/ubuntu.yml/runs?status=success | jq -r ".workflow_runs[0].head_sha")
           else
-            MANGOSD_COMMIT=${{ github.event.inputs.mangos_commit }}
+            MANGOSD_COMMIT=${{ github.event.inputs.mangosd_commit }}
           fi
           echo "::set-output name=mangosd_commit::$MANGOSD_COMMIT"
-
+      - name: Fetch playerbots commit (if not provided)
+        id: fetch_playerbots_commit
+        run: |
+          if [ -z "${{ github.event.inputs.playerbots_commit }}" ]; then
+            PLAYERBOTS_COMMIT=$(curl -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/cmangos/playerbots/actions/workflows/cmangos-ubuntu-build.yml/runs?status=success | jq -r ".workflow_runs[0].head_sha")
+          else
+            PLAYERBOTS_COMMIT=${{ github.event.inputs.playerbots_commit }}
+          fi
+          echo "::set-output name=playerbots_commit::$PLAYERBOTS_COMMIT"
+          
       - name: Fetch database commit (if not provided)
         id: fetch_db_commits
         run: |
