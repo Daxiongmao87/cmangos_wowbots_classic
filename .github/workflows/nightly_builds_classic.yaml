@@ -42,12 +42,18 @@ jobs:
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
+          
+          # Update local main
           git fetch origin main
           git checkout main
-          git pull --merge origin main
+          git pull origin main
+          
+          # Update local nightly
           git fetch origin nightly-${EXPANSION}
           git checkout nightly-${EXPANSION}
-          git pull --merge origin nightly-${EXPANSION}
+          git pull origin nightly-${EXPANSION}
+          
+          # Merge main into nightly
           git merge main
 
       - name: Fetch mangos commit (if not provided)
