@@ -89,7 +89,7 @@ RUN wget -O mangos.zip https://github.com/cmangos/mangos-${WOW_EXPANSION}/archiv
     wget -O website.zip https://github.com/Daxiongmao87/cmangos-website/archive/${WEBSITE_COMMIT_SHA}.zip && \
     unzip mangos.zip && \
       mv mangos-${WOW_EXPANSION}-${MANGOS_COMMIT_SHA} mangos && \
-    sed -i "/FetchContent_Declare.*PlayerBots/,/FetchContent_GetProperties/ s/\(GIT_TAG *\).*\"master\"/\1\"${PLAYERBOTS_COMMIT_SHA}\"/" mangos/src/CMakeLists.txt && \
+    sed -i '/FetchContent_Declare/,/FetchContent_GetProperties(PlayerBots)/ s/\(GIT_TAG[[:space:]]*\)"master"/\1"'"$PLAYERBOTS_COMMIT_SHA"'"/' mangos/src/CMakeLists.txt && \
     unzip database.zip && \
       mv ${WOW_EXPANSION}-db-${DB_COMMIT_SHA} database && \
     unzip website.zip && \
