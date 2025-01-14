@@ -106,6 +106,7 @@ jobs:
           if [ "$(git diff)" ]; then 
             git add .env.template
             git commit -m "Update .env.template with new successfully-built commit SHAs for $EXPANSION"
+            git pull
             git push origin main
           fi
           
