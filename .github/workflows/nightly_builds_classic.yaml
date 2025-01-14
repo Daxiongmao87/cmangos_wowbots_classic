@@ -42,8 +42,12 @@ jobs:
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git pull --rebase origin main
           git fetch origin nightly-${EXPANSION}
           git checkout nightly-${EXPANSION}
+          git pull --rebase origin nightly-${EXPANSION}
           git rebase main
 
       - name: Fetch mangos commit (if not provided)
