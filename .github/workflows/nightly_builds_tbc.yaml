@@ -85,6 +85,7 @@ jobs:
 
       - name: Update .env.template and rename to .env
         run: |
+          sed -i "s/WOW_EXPANSION=.*/WOW_EXPANSION=${EXPANSION}/" .env.template
           sed -i "s/MANGOS_COMMIT_SHA=.*/MANGOS_COMMIT_SHA=${{ steps.fetch_mangos_commit.outputs.mangos_commit }}/" .env.template
           sed -i "s/PLAYERBOTS_COMMIT_SHA=.*/PLAYERBOTS_COMMIT_SHA=${{ steps.fetch_playerbots_commit.outputs.playerbots_commit }}/" .env.template
           sed -i "s/DB_COMMIT_SHA=.*/DB_COMMIT_SHA=${{ steps.fetch_db_commits.outputs.db_commit }}/" .env.template
