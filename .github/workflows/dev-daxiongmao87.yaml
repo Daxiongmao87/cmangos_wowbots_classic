@@ -1,4 +1,4 @@
-name: Nightly Build - Classic
+name: Dev Tests - Daxiongmao87
 env:
   EXPANSION: classic
   GH_TOKEN: ${{ github.token }}
