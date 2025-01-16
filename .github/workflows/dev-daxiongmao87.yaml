@@ -1,7 +1,8 @@
-name: Nightly Build - The Wrath of the Lich King
+name: Dev Tests - Daxiongmao87
 env:
-  EXPANSION: wotlk
+  EXPANSION: classic
   GH_TOKEN: ${{ github.token }}
+  BRANCH: dev-daxiongmao87
 on:
   workflow_dispatch:
     inputs:
@@ -17,8 +18,6 @@ on:
         description: "Enter the db commit SHA (leave blank for automatic selection)"
         required: false
         default: ""
-  schedule:
-    - cron: '0 0 * * *' # Run daily at midnight
   workflow_run:
     workflows: ["ubuntu.yml", "build-release.yml"]
     types:
@@ -37,24 +36,7 @@ jobs:
         with:
           persist-credentials: true
           fetch-depth: 0
-
-      - name: Checkout nightly-${{ env.EXPANSION }} and merge from main
-        run: |
-          git config --local user.name 'github-actions[bot]'
-          git config --local user.email 'github-actions[bot]@users.noreply.github.com'
-
-          # Update local main
-          git fetch origin main
-          git checkout main
-          git pull origin main
-
-          # Update local nightly
-          git fetch origin nightly-${EXPANSION}
-          git checkout nightly-${EXPANSION}
-          git pull origin nightly-${EXPANSION}
-
-          # Merge main into nightly
-          git merge main
+          ref: ${{ env.BRANCH }}
 
       - name: Fetch mangos commit (if not provided)
         id: fetch_mangos_commit
@@ -113,31 +95,3 @@ jobs:
       - name: Build with Docker
         run: |
           docker compose build
-
-      - name: Set Date
-        run: |
-          echo "NIGHTLY_DATE=$(date --rfc-3339=date)" >> ${GITHUB_ENV}
-
-      - name: Commit, and push .env
-        run: |
-          if [ "$(git diff)" ]; then
-            git add .env.template
-            git commit \
-              -m "Update .env.template with new successfully-built commit SHAs for $EXPANSION" \
-              -m ":white_check_mark: Mangos commit: https://github.com/cmangos/mangos-$EXPANSION/commit/${{ steps.fetch_mangos_commit.outputs.mangos_commit }}" \
-              -m ":white_check_mark: Playerbots commit: https://github.com/cmangos/playerbots/commit/${{ steps.fetch_playerbots_commit.outputs.playerbots_commit }}" \
-              -m ":white_check_mark: Database commit: https://github.com/cmangos/$EXPANSION-db/commit/${{ steps.fetch_db_commits.outputs.db_commit }}"
-            git push
-          fi
-
-      - name: Tag commit
-        run: |
-          TAG_NAME="$EXPANSION-nightly-${NIGHTLY_DATE}"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
-
-      - name: Create GitHub release
-        run: |
-          DATE=$(date +'%Y-%m-%d')
-          TAG_NAME="$EXPANSION-nightly-${NIGHTLY_DATE}"
-          gh release create $TAG_NAME --title "Nightly Build - $EXPANSION - $NIGHTLY_DATE" --generate-notes
