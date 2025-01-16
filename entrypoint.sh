@@ -1,6 +1,7 @@
 #!/bin/bash
 MYSQL_PATH=$(whereis mysql | cut -d ' ' -f2)
 CORE_PATH=$HOME/server/mangos
+DATABASE_PATH=$HOME/server/database
 
 # Set ADMIN_USERNAME and ADMIN_PASSWORD default values if not provided
 ADMIN_USER=${ADMIN_USER:-admin}
@@ -30,6 +31,9 @@ while ! mysqladmin ping --silent; do
     sleep 10
 done
 echo "MariaDB started successfully."
+echo "Setting Admin to GM level"
+mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "UPDATE account SET gmlevel=3 WHERE username='$ADMIN_USER';" classicrealmd
+
 # Setup MariaDB databases and user
 # Check if the mangos user exists and create if it does not
 sudo mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('$MYSQL_ROOT_PASSWORD');"
@@ -62,20 +66,40 @@ for DB in $MANGOS_DBNAME $CHARACTERS_DBNAME $REALMD_DBNAME; do
         mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON $DB.* TO 'mangos'@'localhost';"
     fi
 done
+
 mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;"
 
 # Check if the mangos database exists and has the necessary tables
 DB_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW DATABASES LIKE '$MANGOS_DBNAME';")
 TABLE_EXISTS=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -se "SHOW TABLES IN $MANGOS_DBNAME LIKE 'ai_playerbot_enchants';")
 
+# We need to link the mangosd sql updates folder to the database folder
+ln -s $CORE_PATH/sql $DATABASE_PATH/sql
+
 if [ "$DB_EXISTS" = "$MANGOS_DBNAME" ] && [ "$TABLE_EXISTS" = "ai_playerbot_enchants" ]; then
-    echo "${WOW_EXPANSION}-DB with playerbots already set up. Skipping..."
+    echo "${WOW_EXPANSION}-DB with playerbots already set up. Attempting to apply any updates to core."
+    cd $DATABASE_PATH
+    chmod +x InstallFullDB.sh
+    # Initialize InstallFullDB.config by running InstallFullDB.sh silently
+    echo "Generating InstallFullDB.config..."
+    sed -i 's/clear/:/g' InstallFullDB.sh
+    ./InstallFullDB.sh &> /dev/null
+    # Update InstallFullDB.config to enable playerbots
+    echo "Updating InstallFullDB.config..."
+    sed -i 's|PLAYERBOTS_DB="NO"|PLAYERBOTS_DB="YES"|g' InstallFullDB.config
+    sed -i 's|AHBOT="NO"|AHBOT="YES"|g' InstallFullDB.config
+    echo "Running InstallFullDB.sh to setup ${WOW_EXPANSION}-DB with playerbots..."
+    sed -i "s|MYSQL_PATH=\"\"|MYSQL_PATH=\"$MYSQL_PATH\"|g" InstallFullDB.config
+    sed -i "s|CORE_PATH=\"\"|CORE_PATH=\"$CORE_PATH\"|g" InstallFullDB.config
+    export TERM=xterm
+    ./InstallFullDB.sh -Backup full
+    ./InstallFullDB.sh -UpdateCore root $MYSQL_ROOT_PASSWORD
 else
     echo "Setting up ${WOW_EXPANSION}-DB with playerbots enabled..."
     echo "Removing creation of default accounts..."
     sed -i '/-- Dumping data for table `account`/,/UNLOCK TABLES;/d' $CORE_PATH/sql/base/realmd.sql
     echo "Removed default account creation sql statements."
-    cd $HOME/server/database
+    cd $DATABASE_PATH
     chmod +x InstallFullDB.sh
     # Initialize InstallFullDB.config by running InstallFullDB.sh silently
     echo "Generating InstallFullDB.config..."
